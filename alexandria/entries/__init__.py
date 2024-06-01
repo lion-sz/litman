@@ -11,3 +11,12 @@ class EntryTypes(enum.Enum):
 entry_dispatch = {
     EntryTypes.Article: Article,
 }
+entry_dispatch_int = {
+    EntryTypes.Article.value: Article,
+}
+bibtex_mapping = {
+    "article": EntryTypes.Article,
+}
+rev_bibtex_mapping = {
+    EntryTypes.Article.value: "article",
+}

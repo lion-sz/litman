@@ -3,15 +3,16 @@ import shutil
 import subprocess
 from typing import Optional
 
-from box import Box
+import bibtexparser
 import typer
+from box import Box
 
-from alexandria.db_connector import DB
 from alexandria import bibtex
-from alexandria.search import Search
-from alexandria.file import File
+from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
+from alexandria.file import File
 from alexandria.global_state import STATE
+from alexandria_cli.app_utils import select_paper
 
 app = typer.Typer()
 
@@ -59,22 +60,6 @@ def import_bibtex(bibfile: pathlib.Path, library_root: Optional[pathlib.Path] = 
     bibtex.import_bibtex(bibfile, library_root)
 
 
-def select_paper(db: DB, query: str) -> Optional[Entry]:
-    search = Search(db, query)
-    if len(search.result) == 0:
-        print("No results found.")
-        return
-    if len(search.result) > 1:
-        for i, result in enumerate(search.result):
-            print(f"{str(i + 1).ljust(2)}: {result.key.ljust(20)} - {result.title}")
-        print(f"1-{len(search.result)} to select a paper")
-        selection = int(input())
-        paper = search.result[selection - 1]
-    else:
-        paper = search.result[0]
-    return paper
-
-
 @app.command()
 def view(query: str):
     # Search and display results.
@@ -83,7 +68,11 @@ def view(query: str):
     paper = select_paper(db, query)
     if paper is None:
         return
-    file_path = pathlib.Path(paper.files(db)[0].path)
+    files = [f for f in paper.files(db) if f.default_open]
+    if len(files) == 0:
+        print(f"No file found for paper '{paper.key}'")
+        return 1
+    file_path = files[0].path
     target_path = config.files.tmp_storage / file_path.name
     shutil.copy(file_path, target_path)
     subprocess.Popen(["xdg-open", target_path], start_new_session=True)
@@ -97,30 +86,53 @@ def web(query: str):
     if paper is None:
         return
     subprocess.Popen(
-        ["xdg-open", f"https://doi.org/{paper.doi}"], start_new_session=True
+        ["xdg-open", f"https://doi.org/{paper.doi}"],
+        start_new_session=True,
     )
 
+
 @app.command()
-def new():
+def new(file: Optional[pathlib.Path] = None):
     config = STATE["config"]
+    db = STATE["db"]
     new_path = config.files.tmp_storage / "alexandria_new.bib"
     new_path.unlink(missing_ok=True)
     subprocess.call([config.general.editor, new_path])
-    import_bibtex(new_path)
+    entries = bibtex.import_bibtex(new_path)
+    if len(entries) != 0:
+        print(f"Import failed")
+        return 1
+    entry = entries[0]
+    if file is not None:
+        try:
+            f = File(None, file, "Main", True)
+            f.save(config, db)
+            entry.attach_file(db, f)
+            db.connection.commit()
+        except Exception as err:
+            print(f"Failed to attach file '{file}' to entry '{entry.key}'.")
+            print(err)
+            return 1
+
 
 @app.command()
-def attach(key: str, file_path: pathlib.Path):
+def attach(
+    key: str,
+    file_path: pathlib.Path,
+    type: str = "Main",
+    default_open: bool = True,
+):
     config: Box = STATE["config"]
     db: DB = STATE["db"]
     entry = Entry.load(key=key)
     if entry is None:
-         print(f"No entry found with key '{key}'.")
-         return 1
+        print(f"No entry found with key '{key}'.")
+        return 1
     if not file_path.exists():
         print(f"File '{file_path}' does not exist.")
         return 1
     try:
-        file = File(None, path=file_path)
+        file = File(None, file_path, type, default_open)
         file.save(config, db)
         entry.attach_file(db, file)
         db.connection.commit()
@@ -129,3 +141,41 @@ def attach(key: str, file_path: pathlib.Path):
         print(err)
         return 1
 
+
+@app.command()
+def export(key: str, target: pathlib.Path = None):
+    db = STATE["db"]
+    result = bibtex.export_bibtex(db, [key])
+    if len(result.strip()) == 0:
+        return 1
+    if target is None:
+        print(result)
+    else:
+        target.write_text(result)
+
+
+@app.command()
+def edit(key: str):
+    config = STATE["config"]
+    db = STATE["db"]
+    entry = Entry.load(db, key)
+    result = bibtex.export_bibtex(db, [key])
+    if len(result.strip()) == 0:
+        return 1
+    tmp_file = config.files.tmp_storage / f"{key}.bib"
+    tmp_file.write_text(result)
+    subprocess.call([config.general.editor, tmp_file])
+    try:
+        parsed = Entry.parse_bibtex(bibtexparser.parse_file(tmp_file).entries[0])
+    except Exception as err:
+        print("Failed parsing results")
+    if parsed.type != entry.type:
+        print("Entry type cannot changed.")
+        return 1
+    try:
+        parsed.save(db)
+        db.connection.commit()
+    except Exception as err:
+        print("Failed to update entry.")
+        raise err
+    return 0

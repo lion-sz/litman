@@ -1,0 +1,7 @@
+[general]
+editor = "nvim"
+
+[files]
+database_file = "./alexandria.db"
+file_storage_path = "/tmp/alexandria"
+tmp_storage = "/tmp"

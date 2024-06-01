@@ -1,16 +1,14 @@
-import sqlite3
-import pathlib
 import logging
+import pathlib
 from typing import Optional
 
-from box import Box
 import bibtexparser
+from box import Box
 
+from alexandria.db_connector import DB
 from alexandria.entries import Entry, EntryTypes, entry_dispatch
 from alexandria.file import File
-from alexandria.db_connector import DB
 from alexandria.global_state import STATE
-
 
 logger = logging.getLogger(__name__)
 
@@ -19,34 +17,64 @@ _BIBTEX_ENTRY_MAPPING = {
 }
 
 
-def parse_entry(entry: bibtexparser.model.Entry, import_root: pathlib.Path) -> Optional[Entry]:
+def parse_entry(
+    bib_entry: bibtexparser.model.Entry, import_root: pathlib.Path
+) -> Optional[Entry]:
     db: DB = STATE["db"]
     config: Box = STATE["config"]
-    entry_type = _BIBTEX_ENTRY_MAPPING.get(entry["ENTRYTYPE"], None)
+    entry_type = _BIBTEX_ENTRY_MAPPING.get(bib_entry["ENTRYTYPE"], None)
     if entry_type is None:
         logger.warning(
-            f"Bibtex type '{entry.entry_type}' of entry '{entry.key}' not supported",
+            f"Bibtex type '{bib_entry.entry_type}' of entry '{bib_entry.key}' not supported",
         )
-        return
+        return None
     try:
-        parsed = entry_dispatch[entry_type].load_bibtex(entry)
-        parsed.save(db)
-        if "file" in entry:
-            file_path = entry["file"].replace(":PDF", "")
-            if file_path.startswith(":"):
-                file_path = file_path[1:]
-            file = File(None, path=import_root / file_path)
-            file.save(config, db)
-            parsed.attach_file(db, file)
+        parsed = Entry.parse_bibtex(bib_entry)
+        # Check if the entry already exists
+        if Entry.exists(db, parsed.key):
+            logger.info(f"Entry '{parsed.key}' already exists. Skipping")
+            return None
+        else:
+            parsed.save(db)
+        if "file" in bib_entry:
+            # The first files is assumed to be the main file.
+            # This block might be jabref specific.
+            for i, file_str in enumerate(bib_entry["file"].split(";")):
+                desc, path, type = file_str.split(":", 2)
+                file = File(
+                    None,
+                    path=import_root / path,
+                    type=type.lower(),
+                    default_open=i == 0,
+                )
+                file.save(config, db)
+                parsed.attach_file(db, file)
         db.connection.commit()
         logger.debug(f"Saved paper '{parsed.key}'.")
         return parsed
     except Exception as err:
-        logger.error(f"Insertion failed for paper '{entry.key}'.")
+        logger.error(f"Insertion failed for paper '{bib_entry.key}'.")
         logger.exception(err)
-        return
+        return None
 
-def import_bibtex(bibfile: pathlib.Path, library_root: pathlib.Path):
+
+def import_bibtex(bibfile: pathlib.Path, library_root: pathlib.Path) -> list[Entry]:
     library = bibtexparser.parse_file(bibfile)
+    entries = []
     for entry in library.entries:
-        parse_entry(entry, library_root)
+        parsed = parse_entry(entry, library_root)
+        if parsed is not None:
+            entries.append(parsed)
+    return entries
+
+
+def export_bibtex(db: DB, keys: list[str]) -> str:
+    library = bibtexparser.Library()
+    for key in keys:
+        entry = Entry.load(db, key)
+        if entry is None:
+            logger.warning(f"Entry '{key}' not found.")
+            continue
+        bib_entry = entry.to_bibtex_entry()
+        library.add(bib_entry)
+    return bibtexparser.write_string(library)

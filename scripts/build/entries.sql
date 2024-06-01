@@ -5,7 +5,9 @@ create table entries (
     doi text,
     title text not null,
     author text,
-    year integer
+    year integer,
+    created_ts integer not null,
+    modified_ts integer not null
 );
 
 -- Create a fts table to search the titles.
