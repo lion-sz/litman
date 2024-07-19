@@ -90,12 +90,15 @@ class Entry:
         return cls(*entry)
 
     @classmethod
-    def load(cls, db: DB, key: str):
+    def load(cls, db: DB, key: str, barebones: bool = False):
         entry_data = db.cursor.execute(cls._load_file_key, (key,)).fetchone()
         if entry_data is None:
             return None
         entry_type = entries.entry_dispatch_int[entry_data[1]]
-        entry = entry_type._load(db, entry_data)
+        if barebones:
+            entry = Entry(*entry_data)
+        else:
+            entry = entry_type._load(db, entry_data)
         return entry
 
     def save(self, db: DB) -> int:

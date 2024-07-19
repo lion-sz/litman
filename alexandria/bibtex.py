@@ -18,10 +18,8 @@ _BIBTEX_ENTRY_MAPPING = {
 
 
 def parse_entry(
-    bib_entry: bibtexparser.model.Entry, import_root: pathlib.Path
+    config: Box, db: DB, bib_entry: bibtexparser.model.Entry, import_root: pathlib.Path
 ) -> Optional[Entry]:
-    db: DB = STATE["db"]
-    config: Box = STATE["config"]
     entry_type = _BIBTEX_ENTRY_MAPPING.get(bib_entry["ENTRYTYPE"], None)
     if entry_type is None:
         logger.warning(
@@ -37,6 +35,8 @@ def parse_entry(
         else:
             parsed.save(db)
         if "file" in bib_entry:
+            if import_root is None:
+                raise Exception("Cannot import file without a library root.")
             # The first files is assumed to be the main file.
             # This block might be jabref specific.
             for i, file_str in enumerate(bib_entry["file"].split(";")):
@@ -58,11 +58,17 @@ def parse_entry(
         return None
 
 
-def import_bibtex(bibfile: pathlib.Path, library_root: pathlib.Path) -> list[Entry]:
-    library = bibtexparser.parse_file(bibfile)
+def import_bibtex(config: Box, db: DB, library_root: pathlib.Path | None, bib_file: pathlib.Path = None, bib_string: str = None) -> list[Entry]:
+    if int(bib_file is None) + int(bib_string is None) != 1:
+        logger.error("Exactly one of bibfile or bibstring must be provided")
+        raise Exception("Exactly one of bibfile or bibstring must be provided")
+    if bib_file:
+        library = bibtexparser.parse_file(bib_file)
+    else:
+        library = bibtexparser.parse_string(bib_string)
     entries = []
     for entry in library.entries:
-        parsed = parse_entry(entry, library_root)
+        parsed = parse_entry(config, db, entry, library_root)
         if parsed is not None:
             entries.append(parsed)
     return entries

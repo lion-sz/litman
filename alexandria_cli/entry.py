@@ -11,60 +11,28 @@ from alexandria import bibtex
 from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
 from alexandria.file import File
-from alexandria.global_state import STATE
+from alexandria_cli.globals import get_globals
 from alexandria_cli.app_utils import select_paper
 
 app = typer.Typer()
 
 
-@app.callback()
-def setup(
-    config_path: pathlib.Path = "~/.config/alexandria.toml",
-    clean: bool = False,
-    base_path: Optional[pathlib.Path] = None,
-):
-    config_path = config_path.expanduser().absolute()
-    # Load the config
-    config = Box.from_toml(config_path.read_text())
-    STATE["config"] = config
-    for key, value in config.files.items():
-        config.files[key] = pathlib.Path(value).expanduser().absolute()
-    # Set up the file path.
-    if clean:
-        if config.files.file_storage_path.exists():
-            for f in config.files.file_storage_path.glob("*"):
-                f.unlink()
-            config.files.file_storage_path.rmdir()
-    config.files.file_storage_path.mkdir(exist_ok=True)
-    # Load the database
-    db_file = config.files.database_file
-    if clean:
-        db_file.unlink(missing_ok=True)
-    db = DB(db_file=db_file)
-    STATE["db"] = db
-    # Set the base path
-    if base_path is not None:
-        STATE["base_path"] = base_path.expanduser().absolute()
-
-
 @app.command()
 def import_bibtex(bibfile: pathlib.Path, library_root: Optional[pathlib.Path] = None):
-    if "base_path" in STATE and not bibfile.is_absolute():
-        bibfile = STATE["base_path"] / bibfile
-    print(bibfile)
+    config, db = get_globals()
+    bibfile = bibfile.expanduser()
     if not bibfile.exists():
         print(f"{bibfile} does not exist")
         return 1
     if library_root is None:
         library_root = bibfile.parent
-    bibtex.import_bibtex(bibfile, library_root)
+    bibtex.import_bibtex(config, db, library_root, bib_file=bibfile)
 
 
 @app.command()
 def view(query: str):
     # Search and display results.
-    config: Box = STATE["config"]
-    db: DB = STATE["db"]
+    config, db = get_globals()
     paper = select_paper(db, query)
     if paper is None:
         return
@@ -81,7 +49,7 @@ def view(query: str):
 @app.command()
 def web(query: str):
     # Search and display results.
-    db: DB = STATE["db"]
+    config, db = get_globals()
     paper = select_paper(db, query)
     if paper is None:
         return
@@ -93,8 +61,7 @@ def web(query: str):
 
 @app.command()
 def new(file: Optional[pathlib.Path] = None):
-    config = STATE["config"]
-    db = STATE["db"]
+    config, db = get_globals()
     new_path = config.files.tmp_storage / "alexandria_new.bib"
     new_path.unlink(missing_ok=True)
     subprocess.call([config.general.editor, new_path])
@@ -122,8 +89,7 @@ def attach(
     type: str = "Main",
     default_open: bool = True,
 ):
-    config: Box = STATE["config"]
-    db: DB = STATE["db"]
+    config, db = get_globals()
     entry = Entry.load(key=key)
     if entry is None:
         print(f"No entry found with key '{key}'.")
@@ -144,7 +110,7 @@ def attach(
 
 @app.command()
 def export(key: str, target: pathlib.Path = None):
-    db = STATE["db"]
+    config, db = get_globals()
     result = bibtex.export_bibtex(db, [key])
     if len(result.strip()) == 0:
         return 1
@@ -156,8 +122,7 @@ def export(key: str, target: pathlib.Path = None):
 
 @app.command()
 def edit(key: str):
-    config = STATE["config"]
-    db = STATE["db"]
+    config, db = get_globals()
     entry = Entry.load(db, key)
     result = bibtex.export_bibtex(db, [key])
     if len(result.strip()) == 0:

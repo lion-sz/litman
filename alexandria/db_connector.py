@@ -4,7 +4,7 @@ import logging
 
 
 logger = logging.getLogger(__name__)
-_tables = ["entries", "articles", "files", "file_cw"]
+_tables = ["entries", "articles", "files", "collections"]
 
 
 class DB:
@@ -16,7 +16,7 @@ class DB:
     def __init__(self, db_file: pathlib.Path):
         self.db_file = db_file
         if self.db_file.exists():
-            self.connection = sqlite3.connect(self.db_file)
+            self.connection = sqlite3.connect(self.db_file, check_same_thread=False)
         else:
             self.connection = self._build_database()
         self.cursor = self.connection.cursor()

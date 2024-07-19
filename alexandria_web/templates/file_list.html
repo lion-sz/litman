@@ -1,0 +1,8 @@
+{% block content %}
+
+<div>Files:</div>
+{% for file in files %}
+<div class="card-text file_item"><a href="/entry/file/{{ file.file_id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a></div>
+{% endfor %}
+
+{% endblock %}

@@ -1,4 +1,5 @@
-from alexandria_cli.app import app
+from alexandria_cli import main
+
 
 if __name__ == "__main__":
-    app()
+    main.app()

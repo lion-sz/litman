@@ -1,0 +1,11 @@
+<form hx-post="/entry/create">
+    {% if show_msg %}
+        {{ msg }}
+    {% endif %}
+    <div>Please Paste bibtex below</div><br>
+    <div>
+        <textarea name="bibtex" cols="50" rows="15"></textarea>
+    </div>
+
+    <button type="submit">Create Entry</button>
+</form>

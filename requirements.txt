@@ -1,1 +1,4 @@
 python-box[all]
+flask
+typer
+bibtexparser>=2.0.0b7 # I need the pre version

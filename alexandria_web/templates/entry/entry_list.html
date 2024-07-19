@@ -1,0 +1,10 @@
+{% block body %}
+
+{% for entry, files in entries %}
+<div class="row">
+  {% include 'entry/entry.html' %}
+</div>
+{% endfor %}
+
+<div class="row flex-grow-1"></div>
+{% endblock %}

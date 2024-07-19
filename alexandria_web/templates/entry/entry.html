@@ -1,0 +1,61 @@
+{% block body %}
+
+<div class="card" id="{{ entry.key }}">
+    <div class="card-body">
+        <h5 class="card-title">{{ entry.key }}</h5>
+        <h4 class="card-text center">{{ entry.title }}</h4>
+        <p class="card-text">{{ entry.author }}</p>
+        <p class="card-text">{{ entry.year }}</p>
+        {% if files %}
+            <div>Files:</div>
+            {% for file in files %}
+                <div class="card-text file_item"><a href="/entry/file/{{ file.file_id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a></div>
+            {% endfor %}
+
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.key }}">
+              Attach File
+            </button>
+
+            <!-- Modal -->
+            <div class="modal fade" id="uploadModal{{ entry.key }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Attach file for {{ entry.key }}</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      <div id="uploadMsg{{ entry.key }}"></div>
+                    <form hx-post="/entry/attach_file/{{ entry.key }}" hx-target="#uploadMsg{{ entry.key }}" enctype="multipart/form-data">
+                        <!--<label for="fileType{{ entry.key }}">File Type</label><br>-->
+
+                        <div>Type</div>
+                        <input type="radio" id="type_pdf" name="type" value="pdf">
+                        <label for="type_pdf">PDF</label><br>
+                        <input type="radio" id="type_appendix" name="type" value="appendix">
+                        <label for="type_appendix">Appendix</label><br>
+                        <input type="radio" id="type_supplemental" name="type" value="supplemental">
+                        <label for="type_supplemental">Supplemental</label><br>
+
+                        <br>
+                        <label for="file{{ entry.key }}">File</label><br>
+                        <input type="file" id="file{{ entry.key }}" name="file">
+
+                        <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Attach Paper</button>
+                        </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+        {% else %}
+            <div hx-get="/entry/{{ entry.key }}" hx-target="#{{ entry.key }}" hx-swap="outerHTML">Load Files</div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

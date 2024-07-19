@@ -1,0 +1,10 @@
+{% block body %}
+
+<ul>
+{% for entry in entries %}
+    <li class="card-body" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-swap="innerHTML">
+        <p class="card-title">{{ entry[0] }}</p>
+    </li>
+{% endfor %}
+</ul>
+{% endblock %}
