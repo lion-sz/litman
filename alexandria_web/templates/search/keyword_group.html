@@ -1,0 +1,18 @@
+{% block body %}
+
+<div  class="mb-3">
+<span hx-post="/search/advanced/keywords" hx-trigger="keydown[keyCode==9] from:#search_keywords" hx-include="#search_keywords" hx-target="#keyword-group"></span>
+<label for="search_keywords" class="form-label">Keywords</label>
+<input id="search_keywords" class="form-control" name="keywords" list="keyword_list" type="text" hx-get="/search/advanced/list_keywords" hx-trigger="keyup delay:250ms" hx-target="#keyword_list">
+</div>
+
+<div id="selected_keywords" class="mb-3">
+  <span>Keywords:</span>
+  {% for keyword in keywords %}
+    <span class="keyword">{{ keyword.name }} <image src="/static/close.svg" hx-delete="/search/advanced/keywords/{{ keyword.id }}" hx-target="#keyword-group"></image></span>
+  {% endfor %}
+</div>
+
+<datalist id="keyword_list"></datalist>
+
+{% endblock %}

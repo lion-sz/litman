@@ -1,0 +1,25 @@
+<div id="advanced_search">
+    <h5 class="center">Advanced Search</h5>
+
+    <form id="advanced_search_form" hx-post="/search/advanced" hx-trigger="submit, change delay:500ms" hx-target="#advanced_search_results" hx-swap="innerHTML" x-data="keywords: ['fixed_effects']">
+
+        <div class="mb-3">
+            <label for="search_title" class="form-label">Title</label>
+            <input id="search_title" class="form-control" name="title" type="text">
+        </div>
+
+        <div class="mb-3">
+            <label for="search_author" class="form-label">Authors</label>
+            <input id="search_author" class="form-control" name="author" type="text">
+        </div>
+
+        <div id="keyword-group">
+            {% include 'search/keyword_group.html' %}
+        </div>
+
+        <button id="search_submit" type="submit">Search</button>
+    </form>
+</div>
+
+
+<div id="advanced_search_results"></div>

@@ -2,7 +2,7 @@
 
 <ul>
 {% for entry in entries %}
-    <li class="card-body" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-swap="innerHTML">
+    <li class="card-body" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-push-url="true">
         <p class="card-title">{{ entry[0] }}</p>
     </li>
 {% endfor %}

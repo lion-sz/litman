@@ -1,0 +1,12 @@
+<form hx-post="/collection/create">
+    {% if show_msg %}
+        {{ msg }}
+    {% endif %}
+    <label for="name">Name</label><input id="name" name="name" type="text"><br>
+    <label for="description">Description</label>
+    <div>
+        <textarea id="description" name="description" cols="50" rows="5"></textarea>
+    </div>
+
+    <button type="submit">Create Collection</button>
+</form>

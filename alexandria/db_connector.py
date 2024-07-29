@@ -1,10 +1,9 @@
-import sqlite3
-import pathlib
 import logging
-
+import pathlib
+import sqlite3
 
 logger = logging.getLogger(__name__)
-_tables = ["entries", "articles", "files", "collections"]
+_build_scripts = ["entries", "entry_types", "files", "collections", "keywords"]
 
 
 class DB:
@@ -26,10 +25,8 @@ class DB:
         connection = sqlite3.connect(self.db_file)
         cursor = connection.cursor()
         scripts_path = pathlib.Path("./scripts/build")
-        for table in _tables:
-            with open(scripts_path / f"{table}.sql") as f:
+        for script in _build_scripts:
+            with open(scripts_path / f"{script}.sql") as f:
                 cursor.executescript(f.read())
         connection.commit()
         return connection
-
-

@@ -1,0 +1,27 @@
+<div class="card" id="collection_{{ collection.id }}">
+  <div class="card-body">
+    <h5 class="card-title center">{{ collection.name }}</h5>
+    <div id="button_rows" style="margin-bottom: 1em" x-data="{open_attach: false, open_delete: false}">
+      <div id="buttons">
+        <span class="attach" style="float: left" x-on:click="open_attach = !open_attach">Attach Paper</span>
+        <span class="delete" style="float: right" x-on:click="open_delete = !open_delete">Delete Collection</span>
+      </div><br>
+      <div x-show="open_delete">
+        <div style="float: right">Are You Sure? <span hx-delete="/collection/delete/{{ collection.id }}" hx-target="#main" hx-swap="InnerHTML" style="margin-left: 2em">Yes</span><span x-on:click="open_delete=false" style="margin-left: 2em">No</span></div>
+        <br>
+      </div>
+      <div>
+        <a href="/collection/export/{{ collection.id }}" style="text-decoration: none; color: black"><span style="float: right" >Export BibTex</span></a>
+      </div>
+      <div x-show="open_attach">
+        <form hx-post="/collection/attach/{{ collection.id }}" hx-target="#attach_msg" hx-swap="nnerHTML">
+          <span id="attach_msg"></span>
+          <span>Enter Citation Key:</span><input type="text" name="key"><button type="submit">Attach</button>
+        </form>
+      </div>
+    </div><br>
+    <p class="card-text">{{ collection.description }}</p>
+    <p class="card-text" hx-get="/collection/entries/{{ collection.id }}" hx-target="#attached_list" hx-swap="InnerHtml">Contains {{ count }} entries.</p>
+    <div id="attached_list"></div>
+  </div>
+</div>

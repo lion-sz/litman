@@ -6,21 +6,17 @@ import bibtexparser
 from box import Box
 
 from alexandria.db_connector import DB
-from alexandria.entries import Entry, EntryTypes, entry_dispatch
+from alexandria.entries import Entry, EntryTypes, bibtex_mapping, entry_dispatch
 from alexandria.file import File
 from alexandria.global_state import STATE
 
 logger = logging.getLogger(__name__)
 
-_BIBTEX_ENTRY_MAPPING = {
-    "article": EntryTypes.Article,
-}
-
 
 def parse_entry(
     config: Box, db: DB, bib_entry: bibtexparser.model.Entry, import_root: pathlib.Path
 ) -> Optional[Entry]:
-    entry_type = _BIBTEX_ENTRY_MAPPING.get(bib_entry["ENTRYTYPE"], None)
+    entry_type = bibtex_mapping.get(bib_entry["ENTRYTYPE"], None)
     if entry_type is None:
         logger.warning(
             f"Bibtex type '{bib_entry.entry_type}' of entry '{bib_entry.key}' not supported",
@@ -44,7 +40,7 @@ def parse_entry(
                 file = File(
                     None,
                     path=import_root / path,
-                    type=type.lower(),
+                    filetype=type.lower(),
                     default_open=i == 0,
                 )
                 file.save(config, db)
@@ -58,7 +54,13 @@ def parse_entry(
         return None
 
 
-def import_bibtex(config: Box, db: DB, library_root: pathlib.Path | None, bib_file: pathlib.Path = None, bib_string: str = None) -> list[Entry]:
+def import_bibtex(
+    config: Box,
+    db: DB,
+    library_root: pathlib.Path | None,
+    bib_file: pathlib.Path = None,
+    bib_string: str = None,
+) -> list[Entry]:
     if int(bib_file is None) + int(bib_string is None) != 1:
         logger.error("Exactly one of bibfile or bibstring must be provided")
         raise Exception("Exactly one of bibfile or bibstring must be provided")

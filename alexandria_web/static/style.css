@@ -10,3 +10,38 @@
     margin-top: 1em;
     font-weight: bold;
 }
+
+#keywords {
+    padding-top: 2em;
+}
+
+#keyword_list {
+    padding: 10px;
+}
+
+.keyword {
+    padding: 10px;
+    border: 1px solid grey;
+    border-radius: 10px;
+}
+
+.error_msg {
+    background: red;
+}
+
+.success_msg {
+    background: lightgreen;
+}
+
+.form_row {
+    display: flex;
+    margin: 10px;
+}
+
+.form_row label {
+    width: 10em;
+}
+
+.form_row input {
+    flex-grow: 1;
+}

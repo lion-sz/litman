@@ -4,3 +4,9 @@ create table articles (
     volume text,
     pages text
 );
+
+create table books (
+    entry_id integer primary key,
+    publisher text,
+    version text
+)

@@ -1,21 +1,21 @@
 {% block body %}
 
 <div class="card" id="{{ entry.key }}">
-    <div class="card-body">
+    <p class="card-body">
         <h5 class="card-title">{{ entry.key }}</h5>
         <h4 class="card-text center">{{ entry.title }}</h4>
         <p class="card-text">{{ entry.author }}</p>
         <p class="card-text">{{ entry.year }}</p>
-        {% if files %}
+        {% if files_loaded %}
             <div>Files:</div>
             {% for file in files %}
                 <div class="card-text file_item"><a href="/entry/file/{{ file.file_id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a></div>
             {% endfor %}
 
             <!-- Button trigger modal -->
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.key }}">
+            <div><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.key }}">
               Attach File
-            </button>
+            </button></div>
 
             <!-- Modal -->
             <div class="modal fade" id="uploadModal{{ entry.key }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -28,15 +28,12 @@
                   <div class="modal-body">
                       <div id="uploadMsg{{ entry.key }}"></div>
                     <form hx-post="/entry/attach_file/{{ entry.key }}" hx-target="#uploadMsg{{ entry.key }}" enctype="multipart/form-data">
-                        <!--<label for="fileType{{ entry.key }}">File Type</label><br>-->
 
                         <div>Type</div>
-                        <input type="radio" id="type_pdf" name="type" value="pdf">
-                        <label for="type_pdf">PDF</label><br>
-                        <input type="radio" id="type_appendix" name="type" value="appendix">
-                        <label for="type_appendix">Appendix</label><br>
-                        <input type="radio" id="type_supplemental" name="type" value="supplemental">
-                        <label for="type_supplemental">Supplemental</label><br>
+                        {% for (file_type, file_type_val) in file_types %}
+                            <input type="radio" id="type_{{ file_type_val }}" name="type" value="{{ file_type_val }}">
+                            <label for="type_pdf">{{ file_type }}</label><br>
+                        {% endfor %}
 
                         <br>
                         <label for="file{{ entry.key }}">File</label><br>
@@ -54,6 +51,19 @@
 
         {% else %}
             <div hx-get="/entry/{{ entry.key }}" hx-target="#{{ entry.key }}" hx-swap="outerHTML">Load Files</div>
+        {% endif %}
+
+        {% if show_keywords %}
+
+            <div id="keywords">
+                <div id="keyword_list">
+                    <span>Keywords:</span>
+                    {% for keyword in keywords %}
+                        <span class="keyword">{{ keyword.name }} <image src="/static/close.svg" hx-delete="/keyword/delete_keyword/{{ entry.entry_id }}/{{ keyword.id }}"></image></span>
+                    {% endfor %}
+                </div>
+                <form  hx-post="/keyword/add_keyword/{{ entry.entry_id }}"><div>Add Keyword</div><input name="keyword" type="text"></form>
+            </div>
         {% endif %}
     </div>
 </div>

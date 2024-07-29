@@ -5,19 +5,35 @@ from typing import Optional
 
 import bibtexparser
 from box import Box
+from flask import Flask, redirect, render_template, request, send_file
 
 from alexandria import bibtex
 from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
+from alexandria.enums import FileType
 from alexandria.file import File
 from alexandria.search import Search
-from alexandria_cli.globals import get_globals
 from alexandria_cli.app_utils import select_paper
-
-
-from flask import Flask, render_template, request, send_file, redirect
-
+from alexandria_cli.globals import get_globals
 from alexandria_web.app import app
+
+
+@app.route("/entry")
+def list_entries():
+    """List entries.
+
+    This accepts a 'query' filter.
+    """
+    config, db = get_globals()
+    query = request.args.get("query", "")
+    if query != "":
+        entries = db.cursor.execute(
+            "SELECT key, title FROM entries WHERE key LIKE ?", (f"%{query}%",)
+        )
+    else:
+        entries = db.cursor.execute("SELECT key, title FROM entries").fetchall()
+    return render_template("entry/key_list.html", entries=entries)
+
 
 @app.route("/entry/<key>")
 def view_entry(key: str):
@@ -26,9 +42,27 @@ def view_entry(key: str):
         entry = Entry.load(db, key, barebones=True)
     except Exception as err:
         return f"Error loading entry: {err}"
+    if entry is None:
+        return Exception(f"Entry '{entry}' was not found.")
     files = entry.files(db)
-    entries = [(entry, files)]
-    return render_template("entry/entry.html", entry=entry, files=files)
+    file_types = [(ft.name, ft.value) for ft in FileType]
+    entry_kwargs = {
+        "entry": entry,
+        "files_loaded": True,
+        "files": files,
+        "file_types": file_types,
+        "keywords": entry.keywords(db),
+        "show_keywords": True,
+    }
+    if request.headers.get("HX-Request"):
+        return render_template("entry/entry.html", **entry_kwargs)
+    else:
+        return render_template(
+            "base.html",
+            include_template=True,
+            template="entry/entry.html",
+            **entry_kwargs,
+        )
 
 
 @app.route("/entry/search", methods=["POST"])
@@ -42,14 +76,7 @@ def search():
         return render_template("entry/entry.html", entry=search.result[0])
     else:
         entries = [(entry, None) for entry in search.result]
-        return render_template("entry/entry_list.html", entries=entries)
-
-
-@app.route("/entry/list")
-def list_entries():
-    config, db = get_globals()
-    entries = db.cursor.execute("SELECT key, title FROM entries").fetchall()
-    return render_template("entry/entry_short_list.html", entries=entries)
+        return render_template("entry/full_list.html", entries=entries)
 
 
 @app.route("/entry/get_files/<entry_id>")

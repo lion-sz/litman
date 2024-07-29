@@ -6,15 +6,26 @@ from typing import Optional
 from box import Box
 
 from alexandria.db_connector import DB
+from alexandria.enums import FileType
 
 logger = logging.getLogger(__name__)
+
+
+def _map_to_file_type(filetype: str) -> FileType:
+    try:
+        return FileType[filetype]
+    except KeyError:
+        pass
+    if filetype == "pdf":
+        return FileType.PDF
+    raise KeyError(f"FileType {filetype} not known.")
 
 
 class File:
 
     file_id: int | None
     path: pathlib.Path
-    type: str
+    type: FileType
     default_open: bool
 
     _load_id = """SELECT path, type, default_open FROM files WHERE file_id = ?"""
@@ -26,12 +37,16 @@ class File:
         self,
         file_id: Optional[int],
         path: pathlib.Path | str,
-        type: str,
+        filetype: str | int | FileType,
         default_open: bool | int,
     ):
         self.file_id = file_id
         self.path = path if isinstance(path, pathlib.Path) else pathlib.Path(path)
-        self.type = type
+        if isinstance(filetype, str):
+            filetype = _map_to_file_type(filetype)
+        elif isinstance(filetype, int):
+            filetype = FileType(filetype)
+        self.type = filetype
         self.default_open = bool(default_open)
 
     @classmethod
@@ -51,7 +66,7 @@ class File:
             shutil.copy(self.path, target_path)
             self.path = target_path
         db.cursor.execute(
-            self._insert_file, (str(self.path), self.type, int(self.default_open))
+            self._insert_file, (str(self.path), self.type.value, int(self.default_open))
         )
         self.file_id = db.cursor.execute("SELECT last_insert_rowid()").fetchone()[0]
         return self.file_id

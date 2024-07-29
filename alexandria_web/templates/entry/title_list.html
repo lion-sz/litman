@@ -1,0 +1,8 @@
+<ul>
+{% for entry in entries %}
+    <li class="card-body" hx-get="/entry/{{ entry[1] }}" hx-target="#main" hx-push-url="true">
+        <span class="card-title">{{ entry[1] }}</span>
+        <span class="card-body">{{ entry[2] }}</span>
+    </li>
+{% endfor %}
+</ul>
