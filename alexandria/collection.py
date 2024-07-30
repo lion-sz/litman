@@ -7,7 +7,6 @@ from alexandria.entries.entry import Entry
 
 
 class Collection:
-
     id: int | None
 
     _field_names = ["name", "description"]

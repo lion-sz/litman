@@ -3,14 +3,12 @@ from typing import Any, Optional
 
 import bibtexparser.model
 
-from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
 
 logger = logging.getLogger(__name__)
 
 
 class Book(Entry):
-
     _type_field_names = ["publisher", "version"]
 
     publisher: Optional[str]

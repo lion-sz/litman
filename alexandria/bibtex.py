@@ -6,15 +6,19 @@ import bibtexparser
 from box import Box
 
 from alexandria.db_connector import DB
-from alexandria.entries import Entry, EntryTypes, bibtex_mapping, entry_dispatch
+from alexandria.entries import Entry, bibtex_mapping
 from alexandria.file import File
-from alexandria.global_state import STATE
+from alexandria.author import Author
+
 
 logger = logging.getLogger(__name__)
 
 
 def parse_entry(
-    config: Box, db: DB, bib_entry: bibtexparser.model.Entry, import_root: pathlib.Path
+    config: Box,
+    db: DB,
+    bib_entry: bibtexparser.model.Entry,
+    import_root: pathlib.Path,
 ) -> Optional[Entry]:
     entry_type = bibtex_mapping.get(bib_entry["ENTRYTYPE"], None)
     if entry_type is None:
@@ -30,6 +34,12 @@ def parse_entry(
             return None
         else:
             parsed.save(db)
+        # Parse the authors
+        if "author" in bib_entry:
+            authors = Author.parse_authors(bib_entry["author"])
+            for author in authors:
+                author.save(db)
+                parsed.attach_author(db, author)
         if "file" in bib_entry:
             if import_root is None:
                 raise Exception("Cannot import file without a library root.")

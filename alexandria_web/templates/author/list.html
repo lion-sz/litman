@@ -1,0 +1,7 @@
+<ul class="list-group">
+  {% for author in authors %}
+  <li class="list-group-item" hx-get="/author/{{ author.id }}" hx-target="#main" hx-push-url="true">
+    {{ author.printable_name }}
+  </li>
+  {% endfor %}
+</ul>

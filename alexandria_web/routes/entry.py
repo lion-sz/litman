@@ -1,19 +1,12 @@
-import pathlib
-import shutil
-import subprocess
-from typing import Optional
-
 import bibtexparser
-from box import Box
-from flask import Flask, redirect, render_template, request, send_file
+from flask import redirect, render_template, request, send_file
 
 from alexandria import bibtex
-from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
+from alexandria.author import Author
 from alexandria.enums import FileType
 from alexandria.file import File
 from alexandria.search import Search
-from alexandria_cli.app_utils import select_paper
 from alexandria_cli.globals import get_globals
 from alexandria_web.app import app
 
@@ -65,6 +58,41 @@ def view_entry(key: str):
         )
 
 
+@app.route("/entry/edit/<int:id>", methods=["GET", "POST"])
+def edit_entry(id: int):
+    config, db = get_globals()
+    entry = Entry.load_id(db, id)
+    if request.method == "GET":
+        library = bibtexparser.Library()
+        library.add(entry.export_bibtex())
+        bibtex_string = bibtexparser.write_string(library)
+        return render_template(
+            "entry/edit.html", entry=entry, bibtex_string=bibtex_string
+        )
+    # Attempt the edit.
+    form_data = request.form.get("bibtex", "")
+    parsed = bibtexparser.parse_string(form_data)
+    if len(parsed.entries) != 1:
+        raise ValueError("Unexpected amount of entries parsed.")
+    bib_entry = parsed.entries[0]
+    new_entry = Entry.parse_bibtex(bib_entry)
+    entry.update_entry(new_entry)
+    # Check if the authors changed.
+    old_authors = entry.authors(db)
+    new_authors = Author.parse_authors(entry.author, db)
+    removed_authors = [a for a in old_authors if a not in new_authors]
+    added_authors = [a for a in new_authors if a not in old_authors]
+    for author in removed_authors:
+        entry.detach_author(db, author)
+        author.delete(db)
+    for author in added_authors:
+        author.save(db)
+        entry.attach_author(db, author)
+    entry.save(db)
+    db.connection.commit()
+    return redirect("/entry/" + entry.key)
+
+
 @app.route("/entry/search", methods=["POST"])
 def search():
     query = request.form.get("search", "")
@@ -85,7 +113,7 @@ def get_files(entry_id: str):
     try:
         entry = Entry.load(db, entry_id)
         files = entry.files(db)
-    except Exception as err:
+    except Exception:
         return f"No file found for for entry '{entry_id}'"
     return render_template("file_list.html", files=files)
 
@@ -95,7 +123,7 @@ def get_file(file_id: str):
     config, db = get_globals()
     try:
         file = File.load(db, file_id)
-    except Exception as err:
+    except Exception:
         return f"No file found for file '{file_id}'"
     return send_file(file.path)
 

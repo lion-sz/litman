@@ -2,7 +2,6 @@ import pathlib
 from typing import Optional
 
 from box import Box
-import typer
 
 from alexandria.db_connector import DB
 from alexandria_cli import entry, collection, globals
@@ -11,11 +10,12 @@ app = entry.app
 
 app.add_typer(collection.app, name="collection")
 
+
 @app.callback()
 def setup(
-        config_path: pathlib.Path = "~/.config/alexandria.toml",
-        clean: bool = False,
-        base_path: Optional[pathlib.Path] = None,
+    config_path: pathlib.Path = "~/.config/alexandria.toml",
+    clean: bool = False,
+    base_path: Optional[pathlib.Path] = None,
 ):
     config_path = config_path.expanduser().absolute()
     # Load the config

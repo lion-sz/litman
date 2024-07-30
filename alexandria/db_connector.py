@@ -3,11 +3,17 @@ import pathlib
 import sqlite3
 
 logger = logging.getLogger(__name__)
-_build_scripts = ["entries", "entry_types", "files", "collections", "keywords"]
+_build_scripts = [
+    "entries",
+    "entry_types",
+    "files",
+    "collections",
+    "keywords",
+    "author",
+]
 
 
 class DB:
-
     db_file: pathlib.Path
     connection: sqlite3.Connection
     cursor: sqlite3.Cursor

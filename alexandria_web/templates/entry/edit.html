@@ -1,0 +1,9 @@
+<div class="my-3">
+  <form hx-post="/entry/edit/{{ entry.entry_id }}" hx-target="#main">
+    <label for="edit_area" class="form-label"><b>Edit Entry<b></label>
+    <textarea id="edit_area" name="bibtex" class="form-control" rows="15">
+      {{ bibtex_string }}
+    </textarea>
+    <button type="submit" class="btn btn-primary">Edit</button>
+  </form>
+</div>

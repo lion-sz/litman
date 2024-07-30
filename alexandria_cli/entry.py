@@ -5,10 +5,8 @@ from typing import Optional
 
 import bibtexparser
 import typer
-from box import Box
 
 from alexandria import bibtex
-from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
 from alexandria.file import File
 from alexandria_cli.globals import get_globals
@@ -67,7 +65,7 @@ def new(file: Optional[pathlib.Path] = None):
     subprocess.call([config.general.editor, new_path])
     entries = bibtex.import_bibtex(new_path)
     if len(entries) != 0:
-        print(f"Import failed")
+        print("Import failed")
         return 1
     entry = entries[0]
     if file is not None:
@@ -132,7 +130,7 @@ def edit(key: str):
     subprocess.call([config.general.editor, tmp_file])
     try:
         parsed = Entry.parse_bibtex(bibtexparser.parse_file(tmp_file).entries[0])
-    except Exception as err:
+    except Exception:
         print("Failed parsing results")
     if parsed.type != entry.type:
         print("Entry type cannot changed.")

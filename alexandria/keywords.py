@@ -1,17 +1,12 @@
 import logging
-from typing import Any, Optional
 
-import bibtexparser.model
 
-from alexandria import entries
 from alexandria.db_connector import DB
-from alexandria.file import File
 
 logger = logging.getLogger(__name__)
 
 
 class Keyword:
-
     id: int
     name: str
 

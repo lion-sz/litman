@@ -1,7 +1,5 @@
-import secrets
-
 from cachelib import SimpleCache
-from flask import Flask, render_template, session
+from flask import Flask, render_template
 from flask_session import Session
 
 app = Flask(__name__)

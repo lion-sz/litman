@@ -1,1 +1,1 @@
-from . import collection, entry, keywords, search
+from . import collection, entry, keywords, search, author

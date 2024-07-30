@@ -1,10 +1,12 @@
 {% block body %}
 
-<ul>
+<ul class="list-group">
 {% for entry in entries %}
-    <li class="card-body" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-push-url="true">
-        <p class="card-title">{{ entry[0] }}</p>
+    <li class="list-group-item" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-push-url="true">
+        {{ entry[0] }}
     </li>
 {% endfor %}
 </ul>
+
+
 {% endblock %}

@@ -1,8 +1,32 @@
-<ul>
+{% block body %}
+
+<ul class="list-group">
 {% for entry in entries %}
-    <li class="card-body" hx-get="/entry/{{ entry[1] }}" hx-target="#main" hx-push-url="true">
-        <span class="card-title">{{ entry[1] }}</span>
-        <span class="card-body">{{ entry[2] }}</span>
+    <li id="entry_list_{{entry[0]}}" entry_id="{{entry[0]}}" class="list-group-item delay_triggered"
+        x-data="{show: false}" x-on:mouseover="show=true" x-on:mouseleave="show=false">
+        <div hx-get="/entry/{{ entry[1] }}" hx-target="#main" hx-push-url="true">
+            <div>{{ entry[1] }}</div>
+            <div class="ms-3">{{ entry[2] }}</div>
+        </div>
+        <div>
+            <div id="list_target_{{entry[0]}}" x-show="show" hx-get="/entry/{{entry[1]}}" hx-trigger="customTrigger once"></div>
+        </div>
     </li>
 {% endfor %}
 </ul>
+
+<script>
+    var hoverTimer;
+    $(document).on('mouseenter', '.delay_triggered', function() {
+        var id = $(this).attr("entry_id")
+        hoverTimer = setTimeout(function() {
+            htmx.trigger("#list_target_" + id, "customTrigger");
+        }, 100);
+    });
+
+    $(document).on('mouseleave', '.delay_triggered', function() {
+        clearTimeout(hoverTimer);
+    });
+</script>
+
+{% endblock %}

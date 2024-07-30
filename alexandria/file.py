@@ -22,7 +22,6 @@ def _map_to_file_type(filetype: str) -> FileType:
 
 
 class File:
-
     file_id: int | None
     path: pathlib.Path
     type: FileType

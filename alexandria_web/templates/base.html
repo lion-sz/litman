@@ -15,6 +15,7 @@
             integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
             crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/jquery-3.7.1.min.js.js"></script>
 </head>
 <body>
 
@@ -40,12 +41,12 @@
             <div class="row overflow-auto">
 
                 <!-- Paper Sidebar -->
-                <div id="sidebar_entries">
-                    <div class="sidebar_header" x-on:click="show_sidebar = 1 * (show_sidebar != 1)"
+                <div id="sidebar_entries" class="mb-3">
+                    <h5 x-on:click="show_sidebar = 1 * (show_sidebar != 1)"
                          hx-get="/entry" hx-trigger="click" hx-target="#entry_list"
                     >
                         Paper
-                    </div>
+                    </h5>
                     <div x-show="show_sidebar == 1">
                         <div class="sidebar_entry" x-show="open" hx-get="/entry/create" hx-target="#main">Create New</div>
                         <input id="sidebar_filter_paper" type="text" name="query" placeholder="Filter..."
@@ -55,14 +56,29 @@
                     </div>
                 </div>
 
+                <!-- Author Sidebar -->
+                <div id="sidebar_author" class="mb-3">
+                    <h5 x-on:click="show_sidebar = 2 * (show_sidebar != 2)"
+                         hx-get="/author" hx-trigger="click" hx-target="#author_list"
+                    >
+                        Author
+                    </h5>
+                    <div x-show="show_sidebar == 2">
+                        <input id="sidebar_filter_author" type="text" name="query" placeholder="Filter..."
+                               hx-get="/author" hx-trigger="keyup delay:250ms" hx-target="#author_list"
+                        >
+                        <div id="author_list" class="sidebar_entry">Load...</div>
+                    </div>
+                </div>
+
                 <!-- Collections Sidebar -->
-                <div id="sidebar_collections">
-                    <div class="sidebar_header" x-on:click="show_sidebar = 2 * (show_sidebar != 2)"
+                <div id="sidebar_collections" class="mb-3">
+                    <h5 x-on:click="show_sidebar = 3 * (show_sidebar != 3)"
                          hx-get="/collection" hx-trigger="click" hx-target="#collection_list"
                     >
                         Collections
-                    </div>
-                    <div x-show="show_sidebar == 2">
+                    </h5>
+                    <div x-show="show_sidebar == 3">
                         <div class="sidebar_entry" x-show="open" hx-get="/collection/create" hx-target="#main">Create New</div>
                         <input id="sidebar_filter_collections" type="text" name="query" placeholder="Filter..."
                                hx-get="/collection" hx-trigger="keyup delay:250ms" hx-target="#collection_list"
@@ -72,13 +88,13 @@
                 </div>
 
                 <!-- Keywords Sidebar -->
-                <div id="sidebar_keywords">
-                    <div class="sidebar_header" x-on:click="show_sidebar = 3 * (show_sidebar != 3)"
+                <div id="sidebar_keywords" class="mb-3">
+                    <h5 x-on:click="show_sidebar = 4 * (show_sidebar != 4)"
                          hx-get="/keyword" hx-trigger="click" hx-target="#keyword_list"
                     >
                         Keywords
-                    </div>
-                    <div x-show="show_sidebar == 3">
+                    </h5>
+                    <div x-show="show_sidebar == 4">
                         <div class="sidebar_entry" hx-get="/keywords/create" hx-target="#main">Create New</div>
                         <input id="sidebar_filter_keywords" type="text" name="query" placeholder="Filter..."
                                hx-get="/keyword" hx-trigger="keyup delay:250ms" hx-target="#keyword_list"

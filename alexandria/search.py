@@ -5,7 +5,6 @@ from alexandria.entries.entry import Entry
 
 
 class Search:
-
     db: DB
     query: str
     result: list

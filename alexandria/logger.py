@@ -8,7 +8,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logger.level)
 
 # create formatter
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 # add formatter to ch
 ch.setFormatter(formatter)

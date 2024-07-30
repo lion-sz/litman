@@ -2,7 +2,6 @@ from typing import Optional
 
 from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
-from alexandria.global_state import STATE
 from alexandria.search import Search
 
 

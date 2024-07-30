@@ -65,6 +65,8 @@
                 <form  hx-post="/keyword/add_keyword/{{ entry.entry_id }}"><div>Add Keyword</div><input name="keyword" type="text"></form>
             </div>
         {% endif %}
+
+        <div class="my-3" hx-get="/entry/edit/{{ entry.entry_id }}" hx-swap="outerHTML">Edit Entry</div>
     </div>
 </div>
 

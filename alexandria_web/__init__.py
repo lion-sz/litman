@@ -9,7 +9,9 @@ from alexandria_cli import globals
 from alexandria_web.app import app
 from alexandria_web import routes  # noqa: F401
 
-config_path: pathlib.Path = pathlib.Path(environ.get("ALEXANDRIA_CONFIG", "./alexandria.toml"))
+config_path: pathlib.Path = pathlib.Path(
+    environ.get("ALEXANDRIA_CONFIG", "./alexandria.toml")
+)
 clean: bool = False
 base_path: Optional[pathlib.Path] = None
 

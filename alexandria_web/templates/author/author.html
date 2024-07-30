@@ -1,0 +1,10 @@
+{% block  body %}
+
+<div class="card" id="author_{{ author.id }}">
+  <div class="card-body">
+    <h5 class="card-title">{{ author.printable_name }}</h5>
+    {% include 'entry/title_list.html' %}
+  </div>
+</div>
+
+{% endblock %}

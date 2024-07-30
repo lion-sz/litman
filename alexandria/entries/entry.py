@@ -1,4 +1,5 @@
 import logging
+import typing
 from typing import Any, Optional
 
 import bibtexparser.model
@@ -8,12 +9,12 @@ from alexandria.db_connector import DB
 from alexandria.enums import EntryTypes
 from alexandria.file import File
 from alexandria.keywords import Keyword
+from alexandria.author import Author
 
 logger = logging.getLogger(__name__)
 
 
 class Entry:
-
     entry_id: int | None
     type: EntryTypes
 
@@ -52,6 +53,9 @@ class Entry:
         )"""
     _attach_keyword = "INSERT INTO keywords_cw (keyword_id, entry_id) VALUES (?, ?)"
     _delete_keyword = "DELETE FROM keywords_cw WHERE entry_id = ? AND keyword_id = ?"
+    _list_authors = "SELECT author_id FROM author_link WHERE entry_id = ?"
+    _attach_author = "INSERT INTO author_link (author_id, entry_id) VALUES (?, ?)"
+    _detach_author = "DELETE FROM author_link WHERE author_id = ? AND entry_id = ?"
 
     # These must be defined by each class.
     _insert_type: str
@@ -99,13 +103,6 @@ class Entry:
         article_data = db.cursor.execute(cls._load_type, (entry_id,)).fetchone()
         return cls(entry_data, *article_data)
 
-    def _type_save(self, db: DB, update: bool = False):
-        if update:
-            db.cursor.execute(self._update_type, self._type_fields + self.entry_id)
-        else:
-            db.cursor.execute(self._insert_type, (self.entry_id,) + self._type_fields)
-        return self.entry_id
-
     @property
     def fields(self) -> tuple[Any]:
         return self.entry_fields + self._type_fields
@@ -147,15 +144,21 @@ class Entry:
         return entry
 
     def save(self, db: DB) -> int:
+        # Check if an id already exists.
         if self.entry_id is None:
             self.entry_id = db.cursor.execute(self._load_id, (self.key,)).fetchone()
         if self.entry_id is not None:
-            db.cursor.execute(self._update_entries, self.entry_fields + self.entry_id)
-            self._type_save(db, update=True)
-            return self.entry_id
-        db.cursor.execute(self._insert_entries, (self.type,) + self.entry_fields)
-        self.entry_id = db.cursor.execute("SELECT last_insert_rowid()").fetchone()[0]
-        self._type_save(db)
+            db.cursor.execute(
+                self._update_entries,
+                self.entry_fields + (self.entry_id,),
+            )
+            db.cursor.execute(self._update_type, self._type_fields + (self.entry_id,))
+        else:
+            db.cursor.execute(
+                self._insert_entries, (self.type.value,) + self.entry_fields
+            )
+            self.entry_id = db.cursor.lastrowid
+            db.cursor.execute(self._insert_type, (self.entry_id,) + self._type_fields)
         return self.entry_id
 
     @classmethod
@@ -186,6 +189,19 @@ class Entry:
         else:
             raise ValueError("keyword must be a keyword or a keyword id.")
         db.cursor.execute(self._delete_keyword, (self.entry_id, keyword_id))
+
+    def authors(self, db: DB) -> list[Author]:
+        author_ids = db.cursor.execute(self._list_authors, (self.entry_id,)).fetchall()
+        authors = [Author.load_id(db, a[0]) for a in author_ids]
+        return authors
+
+    def attach_author(self, db: DB, author: Author) -> None:
+        db.cursor.execute(self._attach_author, (author.id, self.entry_id))
+        return
+
+    def detach_author(self, db: DB, author: Author) -> None:
+        db.cursor.execute(self._detach_author, (author.id, self.entry_id))
+        return
 
     @staticmethod
     def parse_bibtex(bib_entry: bibtexparser.model.Entry):
@@ -229,3 +245,16 @@ class Entry:
             fields,
         )
         return entry
+
+    def update_entry(self, new_entry: typing.Self) -> None:
+        """Update an existing entry with values from a new entry.
+
+        Files, keywords and collections are kept as is.
+        The authors string is updated, but handling the author objects
+        is left to the calling function.
+        """
+        if self.type != new_entry.type:
+            raise ValueError("Cannot update entry with different type.")
+        for field, value in new_entry.field_dict.items():
+            setattr(self, field, value)
+        return

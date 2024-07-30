@@ -1,25 +1,13 @@
-import bibtexparser
 from flask import (
-    Flask,
     Response,
-    redirect,
     render_template,
     request,
-    send_file,
     session,
 )
 
-from alexandria import bibtex
-from alexandria.collection import Collection
-from alexandria.db_connector import DB
-from alexandria.entries.entry import Entry
-from alexandria.enums import FileType
-from alexandria.file import File
 from alexandria.keywords import Keyword
-from alexandria.search import AdvancedSearch, Search
-from alexandria_cli.app_utils import select_paper
+from alexandria.search import AdvancedSearch
 from alexandria_cli.globals import get_globals
-from alexandria_web._utils import err_msg, parse_int, success_msg
 from alexandria_web.app import app
 
 
