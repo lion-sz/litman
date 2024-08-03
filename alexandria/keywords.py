@@ -1,4 +1,6 @@
 import logging
+import typing
+import uuid
 
 
 from alexandria.db_connector import DB
@@ -10,15 +12,15 @@ class Keyword:
     id: int
     name: str
 
-    _insert_keyword = "INSERT INTO keywords (name) VALUES (?)"
-    _list_keywords = "SELECT id, name FROM keywords"
-    _fetch_name = "SELECT id, name FROM keywords WHERE name = ?"
-    _load_id = "SELECT id, name FROM keywords WHERE id = ?"
-    _search = "SELECT id, name FROM keywords WHERE name LIKE ?"
-    _fetch_all = "SELECT id, name FROM keywords"
+    _insert_keyword = "INSERT INTO keyword (id, name) VALUES (?, ?)"
+    _list_keywords = "SELECT id, name FROM keyword"
+    _fetch_name = "SELECT id, name FROM keyword WHERE name = ?"
+    _load_id = "SELECT id, name FROM keyword WHERE id = ?"
+    _search = "SELECT id, name FROM keyword WHERE name LIKE ?"
+    _fetch_all = "SELECT id, name FROM keyword"
 
-    def __init__(self, id: int, name: str):
-        self.id = id
+    def __init__(self, id: uuid.UUID | None, name: str):
+        self.id = id if id is not None else uuid.uuid4()
         self.name = name
 
     def list_keywords(self, db: DB):
@@ -26,10 +28,10 @@ class Keyword:
         return [Keyword(*k) for k in keywords]
 
     @classmethod
-    def create(cls, db: DB, name: str):
-        db.cursor.execute(cls._insert_keyword, (name,))
-        id = db.cursor.execute("SELECT last_insert_rowid()").fetchone()[0]
-        return cls(id, name)
+    def create(cls, db: DB, name: str) -> typing.Self:
+        keyword = Keyword(None, name)
+        db.cursor.execute(cls._insert_keyword, (keyword.id, keyword.name))
+        return keyword
 
     @classmethod
     def from_name(cls, db: DB, name: str):
@@ -53,7 +55,7 @@ class Keyword:
     def __eq__(self, other):
         if isinstance(other, Keyword):
             return self.id == other.id
-        elif isinstance(other, int):
+        elif isinstance(other, uuid.UUID):
             return self.id == other
         else:
             raise Exception(f"Tried comparing Keyword to '{type(other)}'")

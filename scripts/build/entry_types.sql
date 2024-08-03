@@ -1,12 +1,29 @@
-create table articles (
-    entry_id integer primary key,
+create table article (
+    id uuid primary key,
     journal text,
     volume text,
-    pages text
+    number text,
+    pages text,
+    month int
 );
 
-create table books (
-    entry_id integer primary key,
+create table book (
+    id uuid primary key,
     publisher text,
-    version text
+    address text,
+    edition text
+);
+
+create table inProceedings (
+    id uuid primary key,
+    booktitle text,
+    editor text,
+    volume text,
+    number text,
+    series text,
+    pages text,
+    address text,
+    month int,
+    organization text,
+    publisher text
 )

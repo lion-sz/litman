@@ -1,5 +1,5 @@
 <div class="my-3">
-  <form hx-post="/entry/edit/{{ entry.entry_id }}" hx-target="#main">
+  <form hx-post="/entry/edit/{{ entry.id }}">
     <label for="edit_area" class="form-label"><b>Edit Entry<b></label>
     <textarea id="edit_area" name="bibtex" class="form-control" rows="15">
       {{ bibtex_string }}

@@ -1,3 +1,4 @@
+import uuid
 from flask import render_template, request
 
 from alexandria_cli.globals import get_globals
@@ -24,12 +25,12 @@ def list_authors():
     return render_template("author/list.html", authors=authors)
 
 
-@app.route("/author/<int:author_id>")
-def show_author(author_id: int):
+@app.route("/author/<uuid:author_id>")
+def show_author(author_id: uuid.UUID):
     config, db = get_globals()
     author = Author.load_id(db, author_id)
     entries = db.cursor.execute(
-        "SELECT id, key, title FROM entries WHERE id IN "
+        "SELECT id, key, title FROM entry WHERE id IN "
         "(SELECT entry_id FROM author_link WHERE author_id = ?)",
         (author_id,),
     )

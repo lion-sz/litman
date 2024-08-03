@@ -1,5 +1,5 @@
-<ul>
+<div class="list-group">
   {% for keyword in keywords %}
-    <li>{{ keyword.name }}</li>
+    <div class="list-group-item" hx-get="/keyword/{{keyword.id}}" hx-target="#main" hx-push-url="true">{{ keyword.name }}</div>
   {% endfor %}
-</ul>
+</div>

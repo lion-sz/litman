@@ -1,13 +1,10 @@
-create table collections (
-    id integer primary key,
+create table collection (
+    id uuid primary key,
     name text not null,
-    description text,
-    created_ts integer not null,
-    modified_ts integer not null
+    description text
 );
 
-create table collection_cw (
-    id integer primary key,
-    entry_id integer not null,
-    collection_id integer not null
+create table collection_link (
+    entry_id uuid not null,
+    collection_id uuid not null
 );

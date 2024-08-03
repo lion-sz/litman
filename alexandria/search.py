@@ -1,7 +1,10 @@
 from typing import Optional
+import itertools
+import uuid
 
 from alexandria.db_connector import DB
 from alexandria.entries.entry import Entry
+from alexandria.keywords import Keyword
 
 
 class Search:
@@ -61,19 +64,19 @@ class AdvancedSearch:
     Implemented filters are:
         * Title: Token search (sqlite FTS)
         * Author: Token search (sqlite FTS)
-        * Keywords: Must belong to all keywords
+        * Keywords: Must belong to any of the keywords
     """
 
     is_valid: bool
     _title: str | None
     _author: str | None
-    _keywords: list[int] | None
+    _keywords: list[Keyword] | None
 
     def __init__(
         self,
         title: str | None = None,
         author: str | None = None,
-        keywords: list[int] | None = None,
+        keywords: list[Keyword] | None = None,
     ):
         self._title = title
         self._author = author
@@ -81,61 +84,57 @@ class AdvancedSearch:
         # Check that there is at least one filter.
         self.is_valid = title or author or keywords
 
-    def search(self, db: DB):
-        """Search the database."""
-        if not self.is_valid:
-            raise ValueError("Search is not valid")
-        query, args = self._build_search_query()
-        print(query, args)
-        results = db.cursor.execute(query, args).fetchall()
-        return results
+    def _search_authors(self, db: DB) -> list[uuid.UUID]:
+        """Search for authors matching the name provided."""
+        authors = self._author.split(",")
+        q = "SELECT id FROM author WHERE " + " OR ".join(
+            ["last_name LIKE ?"] * len(authors)
+        )
+        ids = db.cursor.execute(q, [f"%{a.strip()}%" for a in authors]).fetchall()
+        ids = list(itertools.chain.from_iterable(ids))
+        return ids
 
-    def _build_search_query(self) -> str:
-        """This function builds the search query used.
+    def search(self, db: DB) -> list[tuple]:
+        """This function executes the search.
 
         There are fundamentally two different kind of queries:
         1. If I need full text search
         2. If I filter only on keywords.
+
+        Returns:
+            tuples of id, key, and title for each entry found.
         """
-        # Build the keyword filter.
-        if len(self._keywords) == 1:
-            kw_query = "SELECT entry_id FROM keywords_cw WHERE keyword_id == ?"
-            kw_args = [self._keywords[0].id]
-        elif len(self._keywords) > 1:
-            kw_query = "SELECT entry_id FROM keywords_cw GROUP BY entry_id HAVING SUM(keyword_id in ?)"
-            kw_args = [[k.id for k in self._keywords]]
-        else:
-            kw_query = None
-            kw_args = []
-
-        # Check for fts search:
-        fts_query = []
-        fts_args = []
+        if not self.is_valid:
+            raise ValueError("Search is not valid")
+        # I have a number of conditions that come from link tables. These are:
+        #   title (entry_fts)
+        #   author (author_link)
+        #   keyword (keyword_link)
+        # For these I can build the subqueries and then later merge them.
+        foreign_queries = []
+        foreign_args = []
         if self._title:
-            fts_query = ["title MATCH ?"]
-            fts_args = [self._title]
+            q = "rowid IN (SELECT rowid FROM entry_fts WHERE title MATCH ?)"
+            foreign_queries.append(q)
+            foreign_args.append(self._title)
         if self._author:
-            fts_query = fts_query + ["author MATCH ?"]
-            fts_args = fts_args + [self._author]
+            author_ids = self._search_authors(db)
+            q = "id IN (SELECT DISTINCT entry_id FROM author_link WHERE author_id IN ({}))".format(
+                ", ".join("?" for _ in author_ids)
+            )
+            foreign_queries.append(q)
+            foreign_args.extend(author_ids)
+        if self._keywords:
+            q = "id IN (SELECT DISTINCT entry_id FROM keyword_link WHERE keyword_id IN ({}))".format(
+                ", ".join("?" for _ in self._keywords)
+            )
+            foreign_queries.append(q)
+            foreign_args.extend([k.id for k in self._keywords])
 
-        query = "SELECT id, key, title FROM entries WHERE "
-        args = []
-        # If I use either fts or keywords, I need to filter based on an external table.
-        # This external filtering is done were.
-        if fts_query or kw_query:
-            if fts_query:
-                foreign_q = (
-                    f"SELECT rowid FROM entries_fts WHERE {' AND '.join(fts_query)}"
-                )
-                foreign_q_args = fts_args
-                if kw_query:
-                    # If I use both fts and keywords, I need a three-level query.
-                    foreign_q = foreign_q + f" AND rowid IN ({kw_query})"
-                    foreign_q_args += kw_args
-            else:
-                foreign_q = kw_query
-                foreign_q_args = kw_args
-            query += f"id IN ({foreign_q})"
-            args += foreign_q_args
-        # Other filters are not yet implemented.
-        return query, args
+        query = "SELECT id, key, title FROM entry WHERE " + " AND ".join(
+            foreign_queries
+        )
+        args = foreign_args
+        print(query, args)
+        results = db.cursor.execute(query, args).fetchall()
+        return results

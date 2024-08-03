@@ -1,0 +1,14 @@
+{% block body %}
+
+<div class="row mb-2">
+    <div class="col-2 card-text">Journal</div>
+    <div class="col-10 card-text">{{ entry.journal}}</div>
+</div>
+<div class="row mb-3 card-text">
+    <div class="col-2"></div>
+    <div class="col-2">Volume: {{ entry.volume }}</div>
+    <div class="col-2">Number: {{ entry.number }}</div>
+    <div class="col-2">Pages: {{ entry.pages }}</div>
+</div>
+
+{% endblock %}

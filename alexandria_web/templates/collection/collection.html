@@ -14,7 +14,7 @@
         <a href="/collection/export/{{ collection.id }}" style="text-decoration: none; color: black"><span style="float: right" >Export BibTex</span></a>
       </div>
       <div x-show="open_attach">
-        <form hx-post="/collection/attach/{{ collection.id }}" hx-target="#attach_msg" hx-swap="nnerHTML">
+        <form hx-post="/collection/attach/{{ collection.id }}" hx-target="#collection_{{collection.id}}" hx-swap="outerHTML">
           <span id="attach_msg"></span>
           <span>Enter Citation Key:</span><input type="text" name="key"><button type="submit">Attach</button>
         </form>

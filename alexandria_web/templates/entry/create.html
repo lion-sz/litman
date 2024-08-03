@@ -1,11 +1,37 @@
-<form hx-post="/entry/create">
-    {% if show_msg %}
-        {{ msg }}
-    {% endif %}
-    <div>Please Paste bibtex below</div><br>
-    <div>
-        <textarea name="bibtex" cols="50" rows="15"></textarea>
+<div id="upload_accordion" class="accordion">
+
+    <!-- Bibtex Upload -->
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#area_bibtex" aria-expanded="true" aria-controls="area_bibtex">
+                Import From Bibtex
+            </button>
+        </h2>
+        <div id="area_bibtex" class="accordion-collapse collapse show" data-bs-parent="#upload_accordion">
+            <div class="accordion-body">
+                <form hx-post="/entry/create/bibtex">
+                    <div class="mb-3">Please Paste bibtex below</div>
+                    <div class="mb-3">
+                        <textarea class="form-control" name="bibtex" cols="50" rows="15"></textarea>
+                    </div>
+                    <button class="mb-3 btn btn-primary" type="submit">Create Entry</button>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <button type="submit">Create Entry</button>
-</form>
+    <!-- Crossref Upload -->
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#area_crossref" aria-expanded="false" aria-controls="area_crossref">
+                Import From CrossRef
+            </button>
+        </h2>
+        <div id="area_crossref" class="accordion-collapse collapse" data-bs-parent="#upload_accordion">
+            <div class="accordion-body">
+                {% include "entry/create_crossref.html" %}
+            </div>
+        </div>
+    </div>
+
+</div>

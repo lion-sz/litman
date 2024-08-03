@@ -1,0 +1,9 @@
+<div id="keywords">
+    <div>Keywords:</div>
+    <div id="keyword_list">
+        {% for keyword in keywords %}
+            <span class="keyword">{{ keyword.name }} <image src="/static/close.svg" hx-delete="/keyword/delete_keyword/{{ entry.id }}/{{ keyword.id }}" hx-target="#keywords"></image></span>
+        {% endfor %}
+    </div>
+    <form  hx-post="/keyword/add_keyword/{{ entry.id }}" hx-target="#keywords"><div>Add Keyword</div><input name="keyword" type="text"></form>
+</div>

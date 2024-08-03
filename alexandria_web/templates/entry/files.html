@@ -1,0 +1,51 @@
+{% block body %}
+<div id="files_{{entry.entry_id}}">
+    <div class="row mb-3">
+        <div class="col-2 card-text">Files:</div>
+        <div class="col-10 list-group-flush">
+            {% for file in files %}
+                <div class="list-group-item"><a href="/entry/file/{{ file.id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a></div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Button trigger modal -->
+    <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.key }}">
+            Attach File
+        </button>
+    </div>
+    <div class="modal fade" id="uploadModal{{ entry.key }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Attach file for {{ entry.key }}</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="uploadMsg{{ entry.key }}"></div>
+                    <form hx-post="/entry/files/{{ entry.id }}" hx-target="#files_{{ entry.entry_id }}" enctype="multipart/form-data">
+
+                        <div class="mb-3">Type
+                            {% for (file_type, file_type_val) in file_types %}
+                            <div>
+                                <input class="form-ckeck-input" type="radio" id="type_{{ file_type_val }}" name="type" value="{{ file_type_val }}">
+                                <label for="type_{{ file_type_val }}" class="form-check-label">{{ file_type }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <label for="file{{ entry.entry_id }}" class="form-label">File</label>
+                        <input id="file{{ entry.entry_id }}" class="form-control" type="file" name="file">
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Attach Paper</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

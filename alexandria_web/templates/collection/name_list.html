@@ -1,10 +1,10 @@
 {% block body %}
 
-<ul>
+<div class="list-group">
 {% for collection in collections %}
-    <li class="card-body" hx-get="/collection/show/{{ collection[0] }}" hx-target="#main" hx-swap="innerHTML">
-        <p class="card-title">{{ collection[1] }}</p>
-    </li>
+    <div class="list-group-item" hx-get="/collection/{{ collection[0] }}" hx-target="#main" hx-swap="innerHTML">
+        {{ collection[1] }}
+    </div>
 {% endfor %}
-</ul>
+</div>
 {% endblock %}

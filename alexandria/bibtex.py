@@ -29,7 +29,7 @@ def parse_entry(
     try:
         parsed = Entry.parse_bibtex(bib_entry)
         # Check if the entry already exists
-        if Entry.exists(db, parsed.key):
+        if Entry.key_exists(db, parsed.key) is not None:
             logger.info(f"Entry '{parsed.key}' already exists. Skipping")
             return None
         else:
@@ -55,6 +55,8 @@ def parse_entry(
                 )
                 file.save(config, db)
                 parsed.attach_file(db, file)
+        if "abstract" in bib_entry:
+            parsed.add_abstract(db, bib_entry["abstract"])
         db.connection.commit()
         logger.debug(f"Saved paper '{parsed.key}'.")
         return parsed

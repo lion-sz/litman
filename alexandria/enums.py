@@ -4,6 +4,7 @@ from enum import Enum
 class EntryTypes(Enum):
     Article = 1
     Book = 2
+    InProceedings = 3
 
 
 class FileType(Enum):

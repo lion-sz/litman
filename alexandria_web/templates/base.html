@@ -31,7 +31,7 @@
             >
         </div>
         <div class="col-2" hx-get="/search/advanced" hx-target="#main" hx-swap="innerHTML">Advanced Search</div>
-        <div class="col-1" hx-get="/entry/create" hx-target="#main" hx-swap="innerHTML">New</div>
+        <div class="col-1" hx-get="/entry/create" hx-target="#main" hx-swap="innerHTML" hx-push-url="true">New</div>
     </div>
 
 
@@ -43,23 +43,24 @@
                 <!-- Paper Sidebar -->
                 <div id="sidebar_entries" class="mb-3">
                     <h5 x-on:click="show_sidebar = 1 * (show_sidebar != 1)"
-                         hx-get="/entry" hx-trigger="click" hx-target="#entry_list"
+                        hx-get="/entry" hx-trigger="click" hx-target="#entry_list"
                     >
                         Paper
                     </h5>
                     <div x-show="show_sidebar == 1">
-                        <div class="sidebar_entry" x-show="open" hx-get="/entry/create" hx-target="#main">Create New</div>
+                        <div x-show="open" hx-get="/entry/create" hx-target="#main" hx-push-url="true">Create New
+                        </div>
                         <input id="sidebar_filter_paper" type="text" name="query" placeholder="Filter..."
                                hx-get="/entry" hx-trigger="keyup delay:250ms" hx-target="#entry_list"
                         >
-                        <div id="entry_list" class="sidebar_entry">Load...</div>
+                        <div id="entry_list">Load...</div>
                     </div>
                 </div>
 
                 <!-- Author Sidebar -->
                 <div id="sidebar_author" class="mb-3">
                     <h5 x-on:click="show_sidebar = 2 * (show_sidebar != 2)"
-                         hx-get="/author" hx-trigger="click" hx-target="#author_list"
+                        hx-get="/author" hx-trigger="click" hx-target="#author_list"
                     >
                         Author
                     </h5>
@@ -67,39 +68,41 @@
                         <input id="sidebar_filter_author" type="text" name="query" placeholder="Filter..."
                                hx-get="/author" hx-trigger="keyup delay:250ms" hx-target="#author_list"
                         >
-                        <div id="author_list" class="sidebar_entry">Load...</div>
+                        <div id="author_list">Load...</div>
                     </div>
                 </div>
 
                 <!-- Collections Sidebar -->
                 <div id="sidebar_collections" class="mb-3">
                     <h5 x-on:click="show_sidebar = 3 * (show_sidebar != 3)"
-                         hx-get="/collection" hx-trigger="click" hx-target="#collection_list"
+                        hx-get="/collection" hx-trigger="click" hx-target="#collection_list"
                     >
                         Collections
                     </h5>
                     <div x-show="show_sidebar == 3">
-                        <div class="sidebar_entry" x-show="open" hx-get="/collection/create" hx-target="#main">Create New</div>
+                        <div x-show="open" hx-get="/collection/create" hx-target="#main">Create
+                            New
+                        </div>
                         <input id="sidebar_filter_collections" type="text" name="query" placeholder="Filter..."
                                hx-get="/collection" hx-trigger="keyup delay:250ms" hx-target="#collection_list"
                         >
-                        <div id="collection_list" class="sidebar_entry" x-show="open">Load...</div>
+                        <div id="collection_list" x-show="open">Load...</div>
                     </div>
                 </div>
 
                 <!-- Keywords Sidebar -->
                 <div id="sidebar_keywords" class="mb-3">
                     <h5 x-on:click="show_sidebar = 4 * (show_sidebar != 4)"
-                         hx-get="/keyword" hx-trigger="click" hx-target="#keyword_list"
+                        hx-get="/keyword" hx-trigger="click" hx-target="#keyword_list"
                     >
                         Keywords
                     </h5>
                     <div x-show="show_sidebar == 4">
-                        <div class="sidebar_entry" hx-get="/keywords/create" hx-target="#main">Create New</div>
+                        <div hx-get="/keywords/create" hx-target="#main">Create New</div>
                         <input id="sidebar_filter_keywords" type="text" name="query" placeholder="Filter..."
                                hx-get="/keyword" hx-trigger="keyup delay:250ms" hx-target="#keyword_list"
                         >
-                        <div id="keyword_list" class="sidebar_entry">Load...</div>
+                        <div id="keyword_list">Load...</div>
                     </div>
                 </div>
 
@@ -109,16 +112,43 @@
 
         <div class="col d-flex flex-column">
             <div id="main" class="row overflow-auto">
-                {% if include_template %}
-                    {% include template %}
+                {% if template %}
+                {% include template %}
                 {% else %}
-                    Main Panel
+                Main Panel
                 {% endif %}
             </div>
         </div>
     </div>
 
 </div>
+
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="toast-header" class="toast-header"></div>
+        <div id="toast-body" class="toast-body"></div>
+    </div>
+</div>
+
+
+<script>
+
+    const toastLiveExample = document.getElementById('liveToast')
+    const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+
+    htmx.on("toastMessage", (event) => {
+        header = document.getElementById("toast-header")
+        body = document.getElementById("toast-body")
+        header.innerText = event.detail.header
+        body.innerText = event.detail.body
+        // toastLiveExample.style.background = event.detail.color
+        toastLiveExample.classList.remove("bg-success", "bg-danger", "bg-light")
+        toastLiveExample.classList.add(event.detail.style)
+        toastBootstrap.show()
+    })
+
+</script>
 
 </body>
 </html>

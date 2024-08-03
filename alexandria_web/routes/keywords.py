@@ -1,4 +1,7 @@
-from flask import render_template, request
+import json
+import uuid
+
+from flask import render_template, request, Response
 
 from alexandria.entries.entry import Entry
 from alexandria.keywords import Keyword
@@ -18,34 +21,64 @@ def list_keywords():
     return render_template("keyword/list.html", keywords=keywords)
 
 
-@app.route("/keyword/add_keyword/<entry>", methods=["POST"])
-def add_keyword(entry: int):
+@app.route("/keyword/<uuid:keyword_id>", methods=["GET"])
+def show_keyword(keyword_id: uuid.UUID):
+    config, db = get_globals()
+    keyword = Keyword.load_id(db, keyword_id)
+    q = (
+        "SELECT id, key, title FROM entry WHERE id IN "
+        + "(SELECT entry_id FROM keyword_link WHERE keyword_id = ?)"
+    )
+    entries = db.cursor.execute(q, (keyword_id,)).fetchall()
+    kwargs = {"keyword": keyword, "entries": entries}
+    if request.headers.get("HX-Request"):
+        return render_template("keyword/keyword.html", **kwargs)
+    else:
+        return render_template("base.html", template="keyword/keyword.html", **kwargs)
+
+
+@app.route("/keyword/add_keyword/<uuid:entry_id>", methods=["POST"])
+def add_keyword(entry_id: uuid.UUID):
     keyword = request.form["keyword"]
-    print(f"Attaching {keyword} to paper {id}.")
     config, db = get_globals()
     # Load the entry
-    entry = Entry.load_id(db, entry, barebones=True)
+    entry = Entry.load_id(db, entry_id, barebones=True)
     keyword = Keyword.from_name(db, keyword)
     if keyword in entry.keywords(db):
-        return "Keyword already assigned to entry."
+        msg = {
+            "header": "Adding Keyword Failed",
+            "body": "Keyword already assigned to entry.",
+            "style": "bg-danger",
+        }
     else:
         entry.add_keyword(db, keyword)
         db.connection.commit()
-    return "Success"
+        msg = {
+            "header": "Success",
+            "body": f"Assigned '{keyword.name}' to entry.",
+            "style": "bg-success",
+        }
+    return Response(
+        render_template(
+            "keyword/keyword_elem.html",
+            entry=entry,
+            keywords=entry.keywords(db),
+        ),
+        headers={"HX-Trigger": json.dumps({"toastMessage": msg})},
+    )
 
 
-@app.route("/keyword/delete_keyword/<entry_id>/<keyword_id>", methods=["DELETE"])
-def delete_keyword(entry_id: int, keyword_id: int):
-    try:
-        entry_id = int(entry_id)
-    except:
-        raise ValueError(f"entry id '{entry_id}' is not valid.'")
-    try:
-        keyword_id = int(keyword_id)
-    except:
-        raise ValueError(f"keyword id '{keyword_id}' is not valid.")
+@app.route(
+    "/keyword/delete_keyword/<uuid:entry_id>/<uuid:keyword_id>", methods=["DELETE"]
+)
+def delete_keyword(entry_id: uuid.UUID, keyword_id: uuid.UUID):
     config, db = get_globals()
     entry = Entry.load_id(db, entry_id, barebones=True)
     if keyword_id not in entry.keywords(db):
         return f"Keyword id '{keyword_id}' not found for '{entry.key}'."
-    entry.delete_keyword(db, keyword_id)
+    entry.remove_keyword(db, keyword_id)
+    return render_template(
+        "keyword/keyword_elem.html",
+        entry=entry,
+        keywords=entry.keywords(db),
+    )

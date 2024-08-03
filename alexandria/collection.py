@@ -1,4 +1,6 @@
 from typing import Optional
+import typing
+import uuid
 
 import bibtexparser
 
@@ -7,41 +9,38 @@ from alexandria.entries.entry import Entry
 
 
 class Collection:
-    id: int | None
+    id: uuid.UUID | None
 
     _field_names = ["name", "description"]
 
     name: str
     description: str | None
 
-    _q_load_id = "SELECT id, name, description FROM collections WHERE id = ?"
-    _q_load_name = "SELECT id, name, description FROM collections WHERE name = ?"
-    _q_load_papers = "SELECT entry_id FROM collection_cw where collection_id = ?"
-    _q_insert = """INSERT INTO collections
-        (name, description, created_ts, modified_ts)
-        VALUES (?, ?, unixepoch(), unixepoch())"""
-    _q_update = """UPDATE collections SET
-        name = ?, description = ?, modified_ts = unixepoch() WHERE id = ?"""
+    _q_load_id = "SELECT id, name, description FROM collection WHERE id = ?"
+    _q_load_name = "SELECT id, name, description FROM collection WHERE name = ?"
+    _q_load_papers = "SELECT entry_id FROM collection_link where collection_id = ?"
+    _q_insert = "INSERT INTO collection (id, name, description) VALUES (?, ?, ?)"
+    _q_update = "UPDATE collection SET name = ?, description = ? WHERE id = ?"
     _q_attach_entry = (
-        "INSERT INTO collection_cw (entry_id, collection_id) VALUES (?, ?)"
+        "INSERT INTO collection_link (entry_id, collection_id) VALUES (?, ?)"
     )
-    _delete_collection = "DELETE FROM collections WHERE id = ?"
-    _delete_links = "DELETE FROM collection_cw WHERE collection_id = ?"
-    _count_entries = "SELECT COUNT(*) FROM collection_cw WHERE collection_id = ?"
+    _delete_collection = "DELETE FROM collection WHERE id = ?"
+    _delete_links = "DELETE FROM collection_link WHERE collection_id = ?"
+    _count_entries = "SELECT COUNT(*) FROM collection_link WHERE collection_id = ?"
     _check_entry_attached = (
-        "SELECT COUNT(*) FROM collection_cw WHERE collection_id = ? AND entry_id = ?"
+        "SELECT COUNT(*) FROM collection_link WHERE collection_id = ? AND entry_id = ?"
     )
 
-    def __init__(self, id: int | None, name: str, description: str | None):
+    def __init__(self, id: uuid.UUID | None, name: str, description: str | None):
         self.id = id
         self.name = name
         self.description = description
         self._paper_ids = None
 
     @classmethod
-    def load(cls, db: DB, id: Optional[int] = None, name: Optional[str] = None):
+    def load(cls, db: DB, id: Optional[uuid.UUID] = None, name: Optional[str] = None):
         if id is not None:
-            res = db.cursor.execute(cls._q_load_id, (id,)).fetchone()
+            return cls.load_id(db, id)
         elif name is not None:
             res = db.cursor.execute(cls._q_load_name, (name,)).fetchone()
         else:
@@ -51,10 +50,17 @@ class Collection:
         else:
             return cls(*res)
 
+    @classmethod
+    def load_id(cls, db: DB, id: uuid.UUID) -> typing.Self:
+        res = db.cursor.execute(cls._q_load_id, (id,)).fetchone()
+        if res is None:
+            raise ValueError("Collection not found.")
+        return cls(*res)
+
     def save(self, db: DB):
         if self.id is None:
-            db.cursor.execute(self._q_insert, (self.name, self.description))
-            self.id = db.cursor.execute("SELECT last_insert_rowid()").fetchone()[0]
+            self.id = uuid.uuid4()
+            db.cursor.execute(self._q_insert, (self.id, self.name, self.description))
         else:
             db.cursor.execute(self._q_update, (self.name, self.description, self.id))
         return self.id
@@ -69,11 +75,11 @@ class Collection:
 
     def attach_paper(self, db: DB, entry: Entry) -> Optional[int]:
         count = db.cursor.execute(
-            self._check_entry_attached, (self.id, entry.entry_id)
+            self._check_entry_attached, (self.id, entry.id)
         ).fetchone()
         if count[0] > 0:
             return -1
-        db.cursor.execute(self._q_attach_entry, (entry.entry_id, self.id))
+        db.cursor.execute(self._q_attach_entry, (entry.id, self.id))
         return None
 
     def count_papers(self, db: DB) -> int:
@@ -83,5 +89,5 @@ class Collection:
     def export_bibtex(self, db: DB) -> bibtexparser.Library:
         entries = self.papers(db)
         entries = [Entry.load_id(db, id) for id in entries]
-        library = bibtexparser.Library([entry.export_bibtex() for entry in entries])
+        library = bibtexparser.Library([entry.export_bibtex(db) for entry in entries])
         return library

@@ -1,0 +1,22 @@
+<div class="row mb-3">
+    <div class="col-2 card-text">Booktitle</div>
+    <div class="col-10 card-text">{{ entry.booktitle }}</div>
+</div>
+<div class="row mb-3">
+    <div class="col-2"></div>
+    <div class="col-3 card-text">{% if entry.volume %}Volume: {{ entry.volume }}{% endif %}</div>
+    <div class="col-3 card-text">{% if entry.number %}Number: {{ entry.number }}{% endif %}</div>
+    <div class="col-3 card-text">{% if entry.pages %}Pages: {{ entry.pages }}{% endif %}</div>
+</div>
+{% if entry.series %}
+    <div class="row mb-3">
+        <div class="col-2 card-text">Series</div>
+        <div class="col-10 card-text">{{entry.series}}</div>
+    </div>
+{% endif %}
+{% if entry.publisher %}
+    <div class="row mb-3">
+        <div class="col-2 card-text">Publisher</div>
+        <div class="col-10 card-text">{{entry.publisher}}</div>
+    </div>
+{% endif %}

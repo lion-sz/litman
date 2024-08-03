@@ -4,12 +4,12 @@
 {% for entry in entries %}
     <li id="entry_list_{{entry[0]}}" entry_id="{{entry[0]}}" class="list-group-item delay_triggered"
         x-data="{show: false}" x-on:mouseover="show=true" x-on:mouseleave="show=false">
-        <div hx-get="/entry/{{ entry[1] }}" hx-target="#main" hx-push-url="true">
+        <div hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-push-url="true">
             <div>{{ entry[1] }}</div>
             <div class="ms-3">{{ entry[2] }}</div>
         </div>
         <div>
-            <div id="list_target_{{entry[0]}}" x-show="show" hx-get="/entry/{{entry[1]}}" hx-trigger="customTrigger once"></div>
+            <div id="list_target_{{entry[0]}}" x-show="show" hx-get="/entry/{{entry[0]}}/short" hx-trigger="customTrigger once"></div>
         </div>
     </li>
 {% endfor %}

@@ -1,73 +1,45 @@
 {% block body %}
-
 <div class="card" id="{{ entry.key }}">
-    <p class="card-body">
-        <h5 class="card-title">{{ entry.key }}</h5>
-        <h4 class="card-text center">{{ entry.title }}</h4>
-        <p class="card-text">{{ entry.author }}</p>
-        <p class="card-text">{{ entry.year }}</p>
+    <div class="card-body">
+        <h4 class="card-title center mb-3">{{ entry.title }}</h4>
+        <div class="row mb-3">
+            <div class="col-10"></div>
+            <div class="col-2"><img src="/static/crossref.ico"></div>
+        </div>
+        <div class="row mb-3">
+            <h5 class="col-10 card-title">{{ entry.key }}</h5>
+            <div class="col-2 card-text">{{entry.year}}</div>
+        </div>
+
+        <!-- Authors -->
+        <div class="row mb-3">
+            <div class="col-2 card-text">Authors</div>
+            <div class="col-4 list-group">
+                {% for author in authors %}
+                    <div class="list-group-item" hx-get="/author/{{author.id}}" hx-target="#main" hx-push-url="true">{{ author.printable_name }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if type_include %}
+            {% include type_include %}
+        {% endif %}
+
         {% if files_loaded %}
-            <div>Files:</div>
-            {% for file in files %}
-                <div class="card-text file_item"><a href="/entry/file/{{ file.file_id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a></div>
-            {% endfor %}
-
-            <!-- Button trigger modal -->
-            <div><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.key }}">
-              Attach File
-            </button></div>
-
-            <!-- Modal -->
-            <div class="modal fade" id="uploadModal{{ entry.key }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-              <div class="modal-dialog">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="exampleModalLabel">Attach file for {{ entry.key }}</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body">
-                      <div id="uploadMsg{{ entry.key }}"></div>
-                    <form hx-post="/entry/attach_file/{{ entry.key }}" hx-target="#uploadMsg{{ entry.key }}" enctype="multipart/form-data">
-
-                        <div>Type</div>
-                        {% for (file_type, file_type_val) in file_types %}
-                            <input type="radio" id="type_{{ file_type_val }}" name="type" value="{{ file_type_val }}">
-                            <label for="type_pdf">{{ file_type }}</label><br>
-                        {% endfor %}
-
-                        <br>
-                        <label for="file{{ entry.key }}">File</label><br>
-                        <input type="file" id="file{{ entry.key }}" name="file">
-
-                        <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Attach Paper</button>
-                        </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            {% include 'entry/files.html' %}
         {% else %}
-            <div hx-get="/entry/{{ entry.key }}" hx-target="#{{ entry.key }}" hx-swap="outerHTML">Load Files</div>
+            <div class="mb-3 card-text" hx-get="/entry/files/{{ entry.id }}" hx-swap="outerHTML">Load Files</div>
         {% endif %}
 
+        <!-- Keywords -->
         {% if show_keywords %}
-
-            <div id="keywords">
-                <div id="keyword_list">
-                    <span>Keywords:</span>
-                    {% for keyword in keywords %}
-                        <span class="keyword">{{ keyword.name }} <image src="/static/close.svg" hx-delete="/keyword/delete_keyword/{{ entry.entry_id }}/{{ keyword.id }}"></image></span>
-                    {% endfor %}
-                </div>
-                <form  hx-post="/keyword/add_keyword/{{ entry.entry_id }}"><div>Add Keyword</div><input name="keyword" type="text"></form>
-            </div>
+            {% include 'keyword/keyword_elem.html' %}
         {% endif %}
 
-        <div class="my-3" hx-get="/entry/edit/{{ entry.entry_id }}" hx-swap="outerHTML">Edit Entry</div>
+        <div class="my-3" hx-get="/entry/edit/{{ entry.id }}" hx-swap="outerHTML">Edit Entry</div>
     </div>
 </div>
+
+<div hx-get="/entry/{{entry.id}}" hx-trigger="reloadEntry from:#main" hx-target="#main" hx-swap="innerHTML"</div>
 
 {% endblock %}

@@ -1,26 +1,44 @@
-create table entries (
-    id integer primary key,
+create table entry (
+    id uuid primary key,
     type integer not null,
     key text not null,
     doi text,
     title text not null,
-    author text,
     year integer,
-    created_ts integer not null,
-    modified_ts integer not null
+    url text
+);
+
+create table abstract (
+    entry_id uuid not null,
+    abstract text not null
 );
 
 -- Create a fts table to search the titles.
-CREATE VIRTUAL TABLE entries_fts USING fts5(title, author, content='entries', content_rowid='id');
+CREATE VIRTUAL TABLE entry_fts USING fts5(title, content='entry', content_rowid='rowid');
 
 -- Triggers to keep the FTS index up to date.
-CREATE TRIGGER tbl_ai AFTER INSERT ON entries BEGIN
-  INSERT INTO entries_fts(rowid, title, author) VALUES (new.id, new.title, new.author);
+CREATE TRIGGER entry_ai AFTER INSERT ON entry BEGIN
+  INSERT INTO entry_fts(rowid, title) VALUES (new.rowid, new.title);
 END;
-CREATE TRIGGER tbl_ad AFTER DELETE ON entries BEGIN
-  INSERT INTO entries_fts(entries_fts, rowid, title, author) VALUES('delete', old.id, old.title, old.author);
+CREATE TRIGGER entry_ad AFTER DELETE ON entry BEGIN
+  INSERT INTO entry_fts(entries_fts, rowid, title) VALUES('delete', old.rowid, old.title);
 END;
-CREATE TRIGGER tbl_au AFTER UPDATE ON entries BEGIN
-  INSERT INTO entries_fts(entries_fts, rowid, title, author) VALUES('delete', old.id, old.title, old.author);
-  INSERT INTO entries_fts(rowid, title, author) VALUES (new.id, new.title, old.author);
+CREATE TRIGGER entry_au AFTER UPDATE ON entry BEGIN
+  INSERT INTO entry_fts(entries_fts, rowid, title) VALUES('delete', old.rowid, old.title);
+  INSERT INTO entry_fts(rowid, title) VALUES (new.rowid, new.title);
+END;
+
+
+CREATE VIRTUAL TABLE abstract_fts USING fts5(abstract, content='abstract', content_rowid='rowid');
+
+-- Triggers to keep the FTS index up to date.
+CREATE TRIGGER abstract_ai AFTER INSERT ON abstract BEGIN
+  INSERT INTO abstract_fts(rowid, abstract) VALUES (new.rowid, new.abstract);
+END;
+CREATE TRIGGER abstract_ad AFTER DELETE ON abstract BEGIN
+  INSERT INTO abstract_fts(abstract_fts, rowid, abstract) VALUES('delete', old.rowid, old.abstract);
+END;
+CREATE TRIGGER abstract_au AFTER UPDATE ON abstract BEGIN
+  INSERT INTO abstract_fts(abstract_fts, rowid, abstract) VALUES('delete', old.rowid, old.abstract);
+  INSERT INTO abstract_fts(rowid, abstract) VALUES (new.rowid, new.abstract);
 END;

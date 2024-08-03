@@ -1,14 +1,23 @@
 import bibtexparser
-from flask import redirect, render_template, request, send_file
+import json
+import uuid
+from flask import render_template, request, send_file, Response
 
 from alexandria import bibtex
 from alexandria.entries.entry import Entry
 from alexandria.author import Author
-from alexandria.enums import FileType
+from alexandria.enums import FileType, EntryTypes
 from alexandria.file import File
 from alexandria.search import Search
+from alexandria.sources import load_doi
 from alexandria_cli.globals import get_globals
 from alexandria_web.app import app
+
+TYPE_INCLUDES = {
+    EntryTypes.Article: "/entry/type/article.html",
+    EntryTypes.Book: "/entry/type/book.html",
+    EntryTypes.InProceedings: "/entry/type/inproceedings.html",
+}
 
 
 @app.route("/entry")
@@ -21,26 +30,28 @@ def list_entries():
     query = request.args.get("query", "")
     if query != "":
         entries = db.cursor.execute(
-            "SELECT key, title FROM entries WHERE key LIKE ?", (f"%{query}%",)
+            "SELECT id, key, title FROM entry WHERE key LIKE ?", (f"%{query}%",)
         )
     else:
-        entries = db.cursor.execute("SELECT key, title FROM entries").fetchall()
+        entries = db.cursor.execute("SELECT id, key, title FROM entry").fetchall()
     return render_template("entry/key_list.html", entries=entries)
 
 
-@app.route("/entry/<key>")
-def view_entry(key: str):
+@app.route("/entry/<uuid:id>")
+def view_entry(id: uuid.UUID):
     config, db = get_globals()
     try:
-        entry = Entry.load(db, key, barebones=True)
+        entry = Entry.load_id(db, id, barebones=False)
     except Exception as err:
         return f"Error loading entry: {err}"
     if entry is None:
-        return Exception(f"Entry '{entry}' was not found.")
+        return f"Entry '{id}' was not found."
     files = entry.files(db)
     file_types = [(ft.name, ft.value) for ft in FileType]
     entry_kwargs = {
         "entry": entry,
+        "type_include": TYPE_INCLUDES[entry.type],
+        "authors": entry.authors(db),
         "files_loaded": True,
         "files": files,
         "file_types": file_types,
@@ -50,21 +61,35 @@ def view_entry(key: str):
     if request.headers.get("HX-Request"):
         return render_template("entry/entry.html", **entry_kwargs)
     else:
-        return render_template(
-            "base.html",
-            include_template=True,
-            template="entry/entry.html",
-            **entry_kwargs,
-        )
+        return render_template("base.html", template="entry/entry.html", **entry_kwargs)
 
 
-@app.route("/entry/edit/<int:id>", methods=["GET", "POST"])
-def edit_entry(id: int):
+@app.route("/entry/<uuid:id>/short")
+def view_entry_short(id: uuid.UUID):
+    config, db = get_globals()
+    try:
+        entry = Entry.load_id(db, id, barebones=True)
+    except Exception as err:
+        return f"Error loading entry: {err}"
+    if entry is None:
+        return f"Entry '{id}' was not found."
+    entry_kwargs = {
+        "entry": entry,
+        "type_include": None,
+        "authors": entry.authors(db),
+        "files_loaded": False,
+        "show_keywords": False,
+    }
+    return render_template("entry/entry.html", **entry_kwargs)
+
+
+@app.route("/entry/edit/<uuid:id>", methods=["GET", "POST"])
+def edit_entry(id: uuid.UUID):
     config, db = get_globals()
     entry = Entry.load_id(db, id)
     if request.method == "GET":
         library = bibtexparser.Library()
-        library.add(entry.export_bibtex())
+        library.add(entry.export_bibtex(db))
         bibtex_string = bibtexparser.write_string(library)
         return render_template(
             "entry/edit.html", entry=entry, bibtex_string=bibtex_string
@@ -73,24 +98,56 @@ def edit_entry(id: int):
     form_data = request.form.get("bibtex", "")
     parsed = bibtexparser.parse_string(form_data)
     if len(parsed.entries) != 1:
-        raise ValueError("Unexpected amount of entries parsed.")
+        msg = {
+            "toastMessage": {
+                "header": "Update Failed",
+                "body": f"Unexpected amount of entries parsed: {len(parsed.entries)}.",
+                "style": "bg-danger",
+            }
+        }
+        return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
     bib_entry = parsed.entries[0]
-    new_entry = Entry.parse_bibtex(bib_entry)
-    entry.update_entry(new_entry)
-    # Check if the authors changed.
-    old_authors = entry.authors(db)
-    new_authors = Author.parse_authors(entry.author, db)
-    removed_authors = [a for a in old_authors if a not in new_authors]
-    added_authors = [a for a in new_authors if a not in old_authors]
-    for author in removed_authors:
-        entry.detach_author(db, author)
-        author.delete(db)
-    for author in added_authors:
-        author.save(db)
-        entry.attach_author(db, author)
-    entry.save(db)
-    db.connection.commit()
-    return redirect("/entry/" + entry.key)
+    try:
+        new_entry = Entry.parse_bibtex(bib_entry)
+        entry.update_entry(new_entry)
+        # Check if the authors changed.
+        old_authors = entry.authors(db)
+        new_authors = Author.parse_authors(bib_entry["author"], db)
+        removed_authors = [a for a in old_authors if a not in new_authors]
+        added_authors = [a for a in new_authors if a not in old_authors]
+        for author in removed_authors:
+            entry.detach_author(db, author)
+            author.delete(db)
+        for author in added_authors:
+            author.save(db)
+            entry.attach_author(db, author)
+        entry.save(db)
+        db.connection.commit()
+    except Exception as err:
+        msg = {
+            "toastMessage": {
+                "header": "Update Failed",
+                "body": f"Parsing failed with {err}.",
+                "style": "bg-danger",
+            }
+        }
+        return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
+    msg = {
+        "toastMessage": {
+            "header": "Update Succeeded",
+            "body": f"Updated entry '{entry.key}'.",
+            "style": "bg-success",
+        },
+        "reloadEntry": {"data": "blank"},
+    }
+    return Response(
+        status=204,
+        headers={
+            # "HX-Redirect": f"/entry/{entry.id}",
+            # "HX-Retarget": "#main",
+            "HX-Trigger": json.dumps(msg),
+        },
+    )
 
 
 @app.route("/entry/search", methods=["POST"])
@@ -107,19 +164,61 @@ def search():
         return render_template("entry/full_list.html", entries=entries)
 
 
-@app.route("/entry/get_files/<entry_id>")
-def get_files(entry_id: str):
+@app.route("/entry/files/<uuid:entry_id>")
+def get_files(entry_id: uuid.UUID):
     config, db = get_globals()
     try:
-        entry = Entry.load(db, entry_id)
+        entry = Entry.load_id(db, entry_id)
         files = entry.files(db)
     except Exception:
         return f"No file found for for entry '{entry_id}'"
-    return render_template("file_list.html", files=files)
+    return render_template("entry/files.html", entry=entry, files=files)
 
 
-@app.route("/entry/file/<file_id>")
-def get_file(file_id: str):
+@app.route("/entry/files/<uuid:entry_id>", methods=["POST"])
+def attach_file(entry_id: uuid.UUID):
+    config, db = get_globals()
+    try:
+        if "file" not in request.files:
+            raise ValueError("No File Provided")
+        file_obj = request.files["file"]
+        if "type" not in request.form:
+            raise ValueError("No Type Provided")
+        # Attach the file to the entry.
+        entry = Entry.load_id(db, entry_id)
+        if entry is None:
+            raise ValueError(f"Entry {entry_id} Found")
+        default_file = len(entry.files(db)) == 0
+        file_path = config.files.file_storage_path / file_obj.filename
+        file = File(None, file_path, int(request.form["type"]), default_file)
+        file.save(config, db)
+        entry.attach_file(db, file)
+        file_obj.save(file_path)
+        db.connection.commit()
+        message = {
+            "toastMessage": {
+                "header": "File Upload Succeeded",
+                "body": "",
+                "style": "bg-success",
+            }
+        }
+    except Exception as err:
+        db.connection.rollback()
+        message = {
+            "toastMessage": {
+                "header": "File Upload Failed",
+                "body": str(err),
+                "style": "bg-danger",
+            }
+        }
+    return Response(
+        render_template("entry/files.html", entry=entry, files=entry.files(db)),
+        headers={"HX-Trigger": json.dumps(message)},
+    )
+
+
+@app.route("/entry/file/<uuid:file_id>")
+def get_file(file_id: uuid.UUID):
     config, db = get_globals()
     try:
         file = File.load(db, file_id)
@@ -128,58 +227,93 @@ def get_file(file_id: str):
     return send_file(file.path)
 
 
-@app.route("/entry/create", methods=["GET", "POST"])
+@app.route("/entry/create", methods=["GET"])
 def create_entry():
-    if request.method == "GET":
-        return render_template("entry/create.html", show_msg=False)
-    elif request.method == "POST":
-        config, db = get_globals()
-        err_msg = None
-        form_data = request.form["bibtex"]
-        if len(form_data) == 0:
-            err_msg = "No Bibtex Data provided."
-        else:
-            try:
-                entries = bibtex.import_bibtex(config, db, None, bib_string=form_data)
-                if len(entries) == 0:
-                    err_msg = "No entries found."
-                else:
-                    return redirect(f"/entry/{entries[0].key}")
-            except Exception as err:
-                err_msg = str(err)
-        if err_msg is None:
-            return "Success!"
-        else:
-            return render_template("entry/create.html", show_msg=True, msg=err_msg)
+    if request.headers.get("HX-Request"):
+        return render_template("entry/create.html")
     else:
-        return "Unallowed Method"
+        return render_template("base.html", template="entry/create.html")
 
 
-@app.route("/entry/attach_file/<key>", methods=["POST"])
-def attach_file(key: str):
-    # if request.method == "GET":
-    #     return "get"
-    if request.method != "POST":
-        raise ValueError(f"Unexpected Method {request.method}")
+@app.route("/entry/create/bibtex", methods=["POST"])
+def create_entry_bibtex():
     config, db = get_globals()
-    print(f"Attaching file for paper {key}.")
-    if "file" not in request.files:
-        return "No File Provided"
-    file_obj = request.files["file"]
-    if "type" not in request.form:
-        return "No Type Provided"
-    # Attach the file to the entry.
-    entry = Entry.load(db, key)
-    if entry is None:
-        return f"Entry {key} Found"
-    default_file = len(entry.files(db)) == 0
-    file_path = config.files.file_storage_path / file_obj.filename
-    file = File(None, file_path, request.form["type"], default_file)
+    msg = None
+    form_data = request.form["bibtex"]
+    if len(form_data) == 0:
+        msg = {
+            "toastMessage": {
+                "header": "Creation Failed",
+                "body": "No BibTeX data was provided.",
+                "style": "bg-danger",
+            }
+        }
+        return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
     try:
-        file.save(config, db)
-        entry.attach_file(db, file)
-        db.connection.commit()
+        entries = bibtex.import_bibtex(config, db, None, bib_string=form_data)
+        if len(entries) != 1:
+            msg = {
+                "toastMessage": {
+                    "header": "Creation Failed",
+                    "body": f"Bad number of entries found: '{len(entries)}'.",
+                    "style": "bg-danger",
+                }
+            }
+            return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
+        entry = entries[0]
     except Exception as err:
-        return str(err)
-    file_obj.save(file_path)
-    return "done"
+        msg = {
+            "toastMessage": {
+                "header": "Creation Failed",
+                "body": f"Import Error: '{err}'",
+                "style": "bg-danger",
+            }
+        }
+        return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
+    return Response(headers={"HX-Redirect": f"/entry/{entry.id}"})
+
+
+@app.route("/entry/create/crossref", methods=["POST"])
+def create_entry_crossref():
+    config, db = get_globals()
+    # Check if the provided values are valid.
+    key = request.form.get("key", "")
+    doi = request.form.get("doi", "")
+    doi_err = None
+    key_err = None
+    if key == "":
+        key_err = "No Citation Key Provided"
+    else:
+        if Entry.load_key(db, key, barebones=True) is not None:
+            key_err = f"Citation Key '{key}' already exists."
+    if doi == "":
+        doi_err = "No DOI Provided"
+
+    # Check if there was an error in form validation.
+    if key_err or doi_err:
+        return render_template(
+            "entry/create_crossref.html",
+            doi=doi,
+            key=key,
+            doi_err=doi_err,
+            key_err=key_err,
+        )
+    # Try the import.
+    try:
+        entry = load_doi(db, key, doi)
+        if entry is None:
+            msg = "Unspecified error."
+        else:
+            db.connection.commit()
+    except Exception as err:
+        db.connection.rollback()
+        msg = str(err)
+        trigger_data = {
+            "toastMessage": {
+                "header": "Import Failed",
+                "body": f"Imported failed: {msg}",
+                "style": "bg-danger",
+            }
+        }
+        return Response(status=204, headers={"HX-Trigger": json.dumps(trigger_data)})
+    return Response(headers={"HX-Redirect": f"/entry/{entry.id}"})

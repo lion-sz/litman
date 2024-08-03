@@ -1,4 +1,6 @@
 import logging
+import typing
+import uuid
 import pathlib
 import shutil
 from typing import Optional
@@ -22,24 +24,24 @@ def _map_to_file_type(filetype: str) -> FileType:
 
 
 class File:
-    file_id: int | None
+    id: uuid.UUID | None
     path: pathlib.Path
     type: FileType
     default_open: bool
 
-    _load_id = """SELECT path, type, default_open FROM files WHERE file_id = ?"""
-    _insert_file = """INSERT INTO files
-        (path, type, default_open, created_ts, modified_ts)
-        VALUES (?, ?, ?, unixepoch(), unixepoch())"""
+    _saved: bool
+    _load_id = "SELECT id, path, type, default_open FROM file WHERE id = ?"
+    _insert_file = "INSERT INTO file (id, path, type, default_open) VALUES (?, ?, ?, ?)"
 
     def __init__(
         self,
-        file_id: Optional[int],
+        id: Optional[uuid.UUID] | None,
         path: pathlib.Path | str,
         filetype: str | int | FileType,
         default_open: bool | int,
     ):
-        self.file_id = file_id
+        self._saved = id is not None
+        self.id = id if id is not None else uuid.uuid4()
         self.path = path if isinstance(path, pathlib.Path) else pathlib.Path(path)
         if isinstance(filetype, str):
             filetype = _map_to_file_type(filetype)
@@ -49,14 +51,14 @@ class File:
         self.default_open = bool(default_open)
 
     @classmethod
-    def load(cls, db: DB, file_id: int) -> "File":
+    def load(cls, db: DB, file_id: uuid.UUID) -> typing.Self:
         file_data = db.cursor.execute(cls._load_id, (file_id,)).fetchone()
         if len(file_data) == 0:
             raise Exception(f"File with id '{file_id}' not found")
-        return cls(file_id, *file_data)
+        return cls(*file_data)
 
-    def save(self, config: Box, db: DB) -> int:
-        if self.file_id is not None:
+    def save(self, config: Box, db: DB) -> None:
+        if self._saved:
             logger.error(f"File {self.path} already saved")
             return
         # Copy the file to the library.
@@ -65,10 +67,10 @@ class File:
             shutil.copy(self.path, target_path)
             self.path = target_path
         db.cursor.execute(
-            self._insert_file, (str(self.path), self.type.value, int(self.default_open))
+            self._insert_file,
+            (self.id, str(self.path), self.type.value, int(self.default_open)),
         )
-        self.file_id = db.cursor.execute("SELECT last_insert_rowid()").fetchone()[0]
-        return self.file_id
+        return None
 
     @classmethod
     def from_db(cls, file):

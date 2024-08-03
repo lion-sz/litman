@@ -1,11 +1,12 @@
 import re
+import uuid
 import typing
 
 from alexandria.db_connector import DB
 
 
 class Author:
-    id: int | None
+    id: uuid.UUID | None
     first_name: str | None
     suffix: str | None
     last_name: str
@@ -19,7 +20,7 @@ class Author:
 
     def __init__(
         self,
-        id: int | None,
+        id: uuid.UUID | None,
         first_name: str | None,
         suffix: str | None,
         last_name: str,
@@ -43,7 +44,7 @@ class Author:
             raise ValueError(f"No author found for id '{id}'")
         return cls(*data)
 
-    def _check_id(self, db: DB) -> int | None:
+    def _check_id(self, db: DB) -> uuid.UUID | None:
         q = "SELECT id FROM author WHERE last_name = ?"
         args = [self.last_name]
         if self.first_name:
@@ -71,8 +72,8 @@ class Author:
             self.id = existing_id
             return
         save_q = self._save_q.format(names=", ".join(self.names))
+        self.id = uuid.uuid4()
         db.cursor.execute(save_q, self.data())
-        self.id = db.cursor.lastrowid
         return
 
     def delete(self, db: DB, force: bool = False) -> None:
