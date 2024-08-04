@@ -14,22 +14,22 @@ create table abstract (
 );
 
 -- Create a fts table to search the titles.
-CREATE VIRTUAL TABLE entry_fts USING fts5(title, content='entry', content_rowid='rowid');
+CREATE VIRTUAL TABLE entry_fts USING fts5(title, content='entry');
 
 -- Triggers to keep the FTS index up to date.
 CREATE TRIGGER entry_ai AFTER INSERT ON entry BEGIN
   INSERT INTO entry_fts(rowid, title) VALUES (new.rowid, new.title);
 END;
 CREATE TRIGGER entry_ad AFTER DELETE ON entry BEGIN
-  INSERT INTO entry_fts(entries_fts, rowid, title) VALUES('delete', old.rowid, old.title);
+  INSERT INTO entry_fts(entry_fts, rowid, title) VALUES('delete', old.rowid, old.title);
 END;
 CREATE TRIGGER entry_au AFTER UPDATE ON entry BEGIN
-  INSERT INTO entry_fts(entries_fts, rowid, title) VALUES('delete', old.rowid, old.title);
+  INSERT INTO entry_fts(entry_fts, rowid, title) VALUES('delete', old.rowid, old.title);
   INSERT INTO entry_fts(rowid, title) VALUES (new.rowid, new.title);
 END;
 
 
-CREATE VIRTUAL TABLE abstract_fts USING fts5(abstract, content='abstract', content_rowid='rowid');
+CREATE VIRTUAL TABLE abstract_fts USING fts5(abstract, content='abstract');
 
 -- Triggers to keep the FTS index up to date.
 CREATE TRIGGER abstract_ai AFTER INSERT ON abstract BEGIN

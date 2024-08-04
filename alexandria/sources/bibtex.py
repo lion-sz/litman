@@ -66,7 +66,7 @@ def parse_entry(
         return None
 
 
-def import_bibtex(
+def import_library(
     config: Box,
     db: DB,
     library_root: pathlib.Path | None,
@@ -88,7 +88,7 @@ def import_bibtex(
     return entries
 
 
-def export_bibtex(db: DB, keys: list[str]) -> str:
+def export_library(db: DB, keys: list[str]) -> str:
     library = bibtexparser.Library()
     for key in keys:
         entry = Entry.load(db, key)

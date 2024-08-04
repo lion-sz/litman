@@ -3,13 +3,13 @@ import json
 import uuid
 from flask import render_template, request, send_file, Response
 
-from alexandria import bibtex
+from alexandria import sources
 from alexandria.entries.entry import Entry
+from alexandria.entries import bibtex_mapping
 from alexandria.author import Author
 from alexandria.enums import FileType, EntryTypes
 from alexandria.file import File
 from alexandria.search import Search
-from alexandria.sources import load_doi
 from alexandria_cli.globals import get_globals
 from alexandria_web.app import app
 
@@ -28,10 +28,20 @@ def list_entries():
     """
     config, db = get_globals()
     query = request.args.get("query", "")
-    if query != "":
-        entries = db.cursor.execute(
-            "SELECT id, key, title FROM entry WHERE key LIKE ?", (f"%{query}%",)
-        )
+    entry_types = request.args.getlist("entry_type")
+    q = []
+    args = []
+    if len(entry_types) > 0:
+        types = [bibtex_mapping[t].value for t in entry_types]
+        q.append(f"type IN ({', '.join('?' for _ in types)})")
+        args.extend(types)
+    if len(query):
+        q.append("key LIKE ?")
+        args.extend(f"%{query}%")
+    if len(q) > 0:
+        q = "SELECT id, key, title FROM entry WHERE " + " AND ".join(q)
+        print(q)
+        entries = db.cursor.execute(q, args).fetchall()
     else:
         entries = db.cursor.execute("SELECT id, key, title FROM entry").fetchall()
     return render_template("entry/key_list.html", entries=entries)
@@ -250,7 +260,7 @@ def create_entry_bibtex():
         }
         return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
     try:
-        entries = bibtex.import_bibtex(config, db, None, bib_string=form_data)
+        entries = sources.import_library(config, db, None, bib_string=form_data)
         if len(entries) != 1:
             msg = {
                 "toastMessage": {
@@ -300,7 +310,7 @@ def create_entry_crossref():
         )
     # Try the import.
     try:
-        entry = load_doi(db, key, doi)
+        entry = sources.load_doi(db, key, doi)
         if entry is None:
             msg = "Unspecified error."
         else:
@@ -316,4 +326,25 @@ def create_entry_crossref():
             }
         }
         return Response(status=204, headers={"HX-Trigger": json.dumps(trigger_data)})
+    return Response(headers={"HX-Redirect": f"/entry/{entry.id}"})
+
+
+@app.route("/entry/create/doi", methods=["POST"])
+def load_doi():
+    config, db = get_globals()
+    doi = request.form.get("doi", "")
+    if doi == "":
+        return "DOI Empty"
+    try:
+        entry = sources.load_doi(config, db, doi)
+        db.connection.commit()
+    except Exception as err:
+        msg = {
+            "HX-Trigger": {
+                "header": "Import Failed",
+                "body": str(err),
+                "style": "bg-danger",
+            }
+        }
+        return Response(status=204, headers={"HX-Trigger": json.dumps(msg)})
     return Response(headers={"HX-Redirect": f"/entry/{entry.id}"})

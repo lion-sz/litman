@@ -6,7 +6,7 @@ from typing import Optional
 import bibtexparser
 import typer
 
-from alexandria import bibtex
+from alexandria.sources import import_library, export_library
 from alexandria.entries.entry import Entry
 from alexandria.file import File
 from alexandria_cli.globals import get_globals
@@ -24,7 +24,7 @@ def import_bibtex(bibfile: pathlib.Path, library_root: Optional[pathlib.Path] = 
         return 1
     if library_root is None:
         library_root = bibfile.parent
-    bibtex.import_bibtex(config, db, library_root, bib_file=bibfile)
+    import_library(config, db, library_root, bib_file=bibfile)
 
 
 @app.command()
@@ -63,7 +63,7 @@ def new(file: Optional[pathlib.Path] = None):
     new_path = config.files.tmp_storage / "alexandria_new.bib"
     new_path.unlink(missing_ok=True)
     subprocess.call([config.general.editor, new_path])
-    entries = bibtex.import_bibtex(new_path)
+    entries = import_library(new_path)
     if len(entries) != 0:
         print("Import failed")
         return 1
@@ -109,7 +109,7 @@ def attach(
 @app.command()
 def export(key: str, target: pathlib.Path = None):
     config, db = get_globals()
-    result = bibtex.export_bibtex(db, [key])
+    result = export_library(db, [key])
     if len(result.strip()) == 0:
         return 1
     if target is None:
@@ -122,7 +122,7 @@ def export(key: str, target: pathlib.Path = None):
 def edit(key: str):
     config, db = get_globals()
     entry = Entry.load(db, key)
-    result = bibtex.export_bibtex(db, [key])
+    result = export_library(db, [key])
     if len(result.strip()) == 0:
         return 1
     tmp_file = config.files.tmp_storage / f"{key}.bib"

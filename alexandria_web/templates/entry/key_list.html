@@ -2,7 +2,7 @@
 
 <ul class="list-group">
 {% for entry in entries %}
-    <li class="list-group-item" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-push-url="true">
+    <li class="list-group-item overflow-hidden" hx-get="/entry/{{ entry[0] }}" hx-target="#main" hx-push-url="true">
         {{ entry[1] }}
     </li>
 {% endfor %}

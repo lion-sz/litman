@@ -313,28 +313,12 @@ class Entry:
         )
         return entry
 
-    @classmethod
-    def parse_crossref(cls, key: str, entry: dict) -> typing.Self:
-        doi = entry.get("DOI", None)
-        title = entry["title"][0]
-        published = entry.get("published", None)
-        if published is None or len(published["date-parts"]) == 0:
-            year = None
-        else:
-            year = published["date-parts"][0][0]
-        url = entry.get("URL", None)
-        # Type dispatching
-        crossref_type = entry["type"]
-        if crossref_type in entries.crossref_mapping:
-            entry_type = entries.crossref_mapping[crossref_type]
-        entry = entries.entry_dispatch[entry_type]._parse_crossref(
-            (None, entry_type.value, key, doi, title, year, url),
-            entry,
-        )
-        return entry
-
     def export_bibtex(self, db: DB) -> bibtexparser.model.Entry:
-        fields = [bibtexparser.model.Field(k, v) for k, v in self.field_dict.items()]
+        fields = [
+            bibtexparser.model.Field(k, v)
+            for k, v in self.field_dict.items()
+            if k != "key"
+        ]
         authors = " AND ".join([str(a) for a in self.authors(db)])
         fields.append(bibtexparser.model.Field("author", authors))
         entry = bibtexparser.model.Entry(

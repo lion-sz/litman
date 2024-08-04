@@ -20,16 +20,23 @@
         </div>
     </div>
 
-    <!-- Crossref Upload -->
+
+    <!-- DOI Upload -->
     <div class="accordion-item">
         <h2 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#area_crossref" aria-expanded="false" aria-controls="area_crossref">
-                Import From CrossRef
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#area_doi" aria-expanded="false" aria-controls="area_doi">
+                Import DOI
             </button>
         </h2>
-        <div id="area_crossref" class="accordion-collapse collapse" data-bs-parent="#upload_accordion">
+        <div id="area_doi" class="accordion-collapse collapse" data-bs-parent="#upload_accordion">
             <div class="accordion-body">
-                {% include "entry/create_crossref.html" %}
+                <form hx-post="/entry/create/doi">
+                    <div class="row mb-3">
+                        <label class="col-2 col-form-label" for="doi">DOI</label>
+                        <div class="col-10"><input class="form-control" id="doi" name="doi" type="text"></div>
+                    </div>
+                    <button class="mb-3 btn btn-primary" type="submit">Create Entry</button>
+                </form>
             </div>
         </div>
     </div>
