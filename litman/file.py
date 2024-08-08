@@ -43,6 +43,7 @@ class File:
         self._saved = id is not None
         self.id = id if id is not None else uuid.uuid4()
         self.path = path if isinstance(path, pathlib.Path) else pathlib.Path(path)
+
         if isinstance(filetype, str):
             filetype = _map_to_file_type(filetype)
         elif isinstance(filetype, int):
@@ -65,10 +66,10 @@ class File:
         if self.path.parent != config.files.file_storage_path:
             target_path = config.files.file_storage_path / self.path.name
             shutil.copy(self.path, target_path)
-            self.path = target_path
+
         db.cursor.execute(
             self._insert_file,
-            (self.id, str(self.path), self.type.value, int(self.default_open)),
+            (self.id, str(self.path.name), self.type.value, int(self.default_open)),
         )
         return None
 

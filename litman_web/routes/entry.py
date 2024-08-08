@@ -37,10 +37,9 @@ def list_entries():
         args.extend(types)
     if len(query):
         q.append("key LIKE ?")
-        args.extend(f"%{query}%")
+        args.append(f"%{query}%")
     if len(q) > 0:
         q = "SELECT id, key, title FROM entry WHERE " + " AND ".join(q)
-        print(q)
         entries = db.cursor.execute(q, args).fetchall()
     else:
         entries = db.cursor.execute("SELECT id, key, title FROM entry").fetchall()
@@ -234,7 +233,8 @@ def get_file(file_id: uuid.UUID):
         file = File.load(db, file_id)
     except Exception:
         return f"No file found for file '{file_id}'"
-    return send_file(file.path)
+    print(file.path)
+    return send_file(config.files.file_storage_path / file.path)
 
 
 @app.route("/entry/create", methods=["GET"])

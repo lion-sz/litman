@@ -1,0 +1,11 @@
+[general]
+editor = "nvim"
+mode = "client"
+
+[files]
+database_file = "/data/litman.db"
+file_storage_path = "/data/files"
+tmp_storage = "/tmp"
+
+[client]
+main = "http://127.0.0.1:5050"

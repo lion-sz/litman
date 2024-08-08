@@ -23,8 +23,8 @@
 <div class="container-fluid vh-100 d-flex flex-column">
 
     <div class="row" style="height: 4em">
-        <div class="col-1">LitMan</div>
-        <div class="col-8">
+        <div class="col-2">LitMan</div>
+        <div class="col-6">
             <input class="form-control" type="search" placeholder="Enter query..." name="search"
                    hx-post="/entry/search" hx-trigger="input changed delay:500ms, search"
                    hx-target="#main" hx-swap="innerHTML"
@@ -32,6 +32,7 @@
         </div>
         <div class="col-2" hx-get="/search/advanced" hx-target="#main" hx-swap="innerHTML">Advanced Search</div>
         <div class="col-1" hx-get="/entry/create" hx-target="#main" hx-swap="innerHTML" hx-push-url="true">New</div>
+        <div class="col-1" hx-get="/admin" hx-target="#main" hx-push-url="true">Admin</div>
     </div>
 
 

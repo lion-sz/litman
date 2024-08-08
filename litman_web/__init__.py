@@ -17,6 +17,10 @@ config_path = config_path.expanduser().absolute()
 # Load the config
 config = Box.from_toml(config_path.read_text())
 globals.STATE["config"] = config
+print(config.files.database_file, config.files.file_storage_path)
+if "LITMAN_MODE" in environ:
+    print("Overwriting litman mode")
+    config.general.mode = environ["LITMAN_MODE"]
 for key, value in config.files.items():
     config.files[key] = pathlib.Path(value).expanduser().absolute()
 # Set up the file path.
