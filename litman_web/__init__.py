@@ -7,7 +7,8 @@ from box import Box
 from litman.db_connector import DB
 from litman_cli import globals
 from litman_web.app import app as app
-from litman_web import routes  # noqa: F401
+from litman_web import routes, _logging  # noqa: F401
+
 
 config_path: pathlib.Path = pathlib.Path(environ.get("LITMAN_CONFIG", "./litman.toml"))
 clean: bool = False

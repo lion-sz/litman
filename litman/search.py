@@ -13,12 +13,12 @@ class Search:
     result: list
 
     _key_exact = (
-        "SELECT id, type, key, doi, title, author, year FROM entries WHERE key = ?"
+        "SELECT id, type, key, doi, title, author, year FROM entry WHERE key = ?"
     )
     _key_like = (
-        "SELECT id, type, key, doi, title, author, year FROM entries WHERE key LIKE ?"
+        "SELECT id, type, key, doi, title, author, year FROM entry WHERE key LIKE ?"
     )
-    _title = """SELECT id, type, key, doi, title, author, year FROM entries WHERE id IN (
+    _title = """SELECT id, type, key, doi, title, author, year FROM entry WHERE id IN (
             SELECT rowid FROM entries_fts WHERE title MATCH ? ORDER BY rank
         )"""
 

@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger("litman")
+logger = logging.getLogger("litman_web")
 logger.setLevel(logging.DEBUG)
 
 # create console handler and set level to debug

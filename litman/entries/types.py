@@ -37,7 +37,9 @@ class Article(Entry):
 
     @classmethod
     def _parse_bibtex(cls, entry_data: tuple, bib: bibtexparser.model.Entry):
-        journal = bib["journaltitle"] if "journaltitle" in bib else None
+        journal = bib["journal"] if "journal" in bib else None
+        if journal is None:
+            journal = bib["journaltitle"] if "journaltitle" in bib else None
         volume = bib["volume"] if "volume" in bib else None
         number = bib["number"] if "number" in bib else None
         pages = bib["pages"] if "pages" in bib else None

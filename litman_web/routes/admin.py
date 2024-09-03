@@ -1,10 +1,13 @@
 import pathlib
+import logging
 
 from flask import render_template, send_file, request, Response
 
 from litman.synchronization import bootstrap_db, sync_client, sync_server
 from litman_cli.globals import get_globals
 from litman_web.app import app
+
+logger = logging.getLogger(__name__)
 
 
 @app.route("/admin")
@@ -44,6 +47,6 @@ def get_changes():
     try:
         response_body = sync_server(config, db, body)
     except Exception as err:
-        print(err)
+        logger.exception(err)
         return Response(status=500)
     return Response(response_body, status=200)
