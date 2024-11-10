@@ -32,6 +32,8 @@ class File:
     _saved: bool
     _load_id = "SELECT id, path, type, default_open FROM file WHERE id = ?"
     _insert_file = "INSERT INTO file (id, path, type, default_open) VALUES (?, ?, ?, ?)"
+    _delete_file = "DELETE FROM file WHERE id = ?"
+    _delete_file_ln = "DELETE FROM file_link where file_id = ?"
 
     def __init__(
         self,
@@ -72,6 +74,13 @@ class File:
             (self.id, str(self.path.name), self.type.value, int(self.default_open)),
         )
         return None
+
+    def delete(self, config: Box, db: DB) -> None:
+        db.cursor.execute(self._delete_file, (self.id,))
+        db.cursor.execute(self._delete_file_ln, (self.id,))
+        filepath = config.files.file_storage_path / self.path.name
+        filepath.unlink()
+        return
 
     @classmethod
     def from_db(cls, file):

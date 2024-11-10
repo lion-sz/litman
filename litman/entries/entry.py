@@ -47,9 +47,14 @@ class Entry:
         "SELECT id, type, key, doi, title, year, url FROM entries WHERE key = ?"
     )
     _load_files = """
-        SELECT file_id, path, type, default_open from files where file_id in (
-            SELECT file_id FROM file_cw WHERE entry_id = ?
+        SELECT id, path, type, default_open from file where id in (
+            SELECT file_id FROM file_link WHERE entry_id = ?
         )"""
+    _load_default_file = """
+        SELECT id from file where default_open = 1 AND id in (
+            SELECT file_id FROM file_link WHERE entry_id = ?
+        )
+    """
     _load_id = "SELECT id FROM entries WHERE key = ?"
     _load_keywords = """
         SELECT id, name FROM keywords WHERE id IN (
@@ -255,10 +260,16 @@ class Entry:
 
     def files(self, db: DB) -> list[File]:
         if self._files is None:
-            q = "SELECT file_id FROM file_link WHERE entry_id = ?"
-            file_ids = db.cursor.execute(q, (self.id,)).fetchall()
-            self._files = [File.load(db, f[0]) for f in file_ids]
+            file_ids = db.cursor.execute(self._load_files, (self.id,)).fetchall()
+            self._files = [File.from_db(f) for f in file_ids]
+            self._files = sorted(
+                self._files, key=lambda f: f.default_open, reverse=True
+            )
         return self._files
+
+    def default_file(self, db: DB) -> File:
+        file_id = db.cursor.execute(self._load_default_file, (self.id,)).fetchone()[0]
+        return File.load(db, file_id)
 
     def attach_file(self, db: DB, file: File) -> None:
         q = "INSERT INTO file_link (file_id, entry_id) VALUES (?, ?)"

@@ -1,1 +1,1 @@
-from . import collection, entry, keywords, search, author, admin  # noqa: F401
+from . import collection, entry, keywords, search, author, admin, file  # noqa: F401

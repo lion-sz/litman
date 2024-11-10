@@ -1,15 +1,13 @@
 import bibtexparser
 import json
 import uuid
-from flask import render_template, request, send_file, Response
+from flask import render_template, request, Response
 
 from litman import sources
 from litman.entries.entry import Entry
 from litman.entries import bibtex_mapping
 from litman.author import Author
 from litman.enums import FileType, EntryTypes
-from litman.file import File
-from litman.search import Search
 from litman_cli.globals import get_globals
 from litman_web.app import app
 
@@ -157,84 +155,6 @@ def edit_entry(id: uuid.UUID):
             "HX-Trigger": json.dumps(msg),
         },
     )
-
-
-@app.route("/entry/search", methods=["POST"])
-def search():
-    query = request.form.get("search", "")
-    if len(query) == 0:
-        return "No Query provided"
-    config, db = get_globals()
-    search = Search(db, query)
-    if len(search.result) == 1:
-        return render_template("entry/entry.html", entry=search.result[0])
-    else:
-        entries = [(entry, None) for entry in search.result]
-        return render_template("entry/full_list.html", entries=entries)
-
-
-@app.route("/entry/files/<uuid:entry_id>")
-def get_files(entry_id: uuid.UUID):
-    config, db = get_globals()
-    try:
-        entry = Entry.load_id(db, entry_id)
-        files = entry.files(db)
-    except Exception:
-        return f"No file found for for entry '{entry_id}'"
-    return render_template("entry/files.html", entry=entry, files=files)
-
-
-@app.route("/entry/files/<uuid:entry_id>", methods=["POST"])
-def attach_file(entry_id: uuid.UUID):
-    config, db = get_globals()
-    try:
-        if "file" not in request.files:
-            raise ValueError("No File Provided")
-        file_obj = request.files["file"]
-        if "type" not in request.form:
-            raise ValueError("No Type Provided")
-        # Attach the file to the entry.
-        entry = Entry.load_id(db, entry_id)
-        if entry is None:
-            raise ValueError(f"Entry {entry_id} Found")
-        default_file = len(entry.files(db)) == 0
-        file_path = config.files.file_storage_path / file_obj.filename
-        file = File(None, file_path, int(request.form["type"]), default_file)
-        file.save(config, db)
-        entry.attach_file(db, file)
-        file_obj.save(file_path)
-        db.connection.commit()
-        message = {
-            "toastMessage": {
-                "header": "File Upload Succeeded",
-                "body": "",
-                "style": "bg-success",
-            }
-        }
-    except Exception as err:
-        db.connection.rollback()
-        message = {
-            "toastMessage": {
-                "header": "File Upload Failed",
-                "body": str(err),
-                "style": "bg-danger",
-            }
-        }
-    return Response(
-        render_template("entry/files.html", entry=entry, files=entry.files(db)),
-        headers={"HX-Trigger": json.dumps(message)},
-    )
-
-
-@app.route("/entry/file/<uuid:file_id>")
-def get_file(file_id: uuid.UUID):
-    config, db = get_globals()
-    try:
-        file = File.load(db, file_id)
-    except Exception:
-        return f"No file found for file '{file_id}'"
-    print(file.path)
-    return send_file(config.files.file_storage_path / file.path)
 
 
 @app.route("/entry/create", methods=["GET"])

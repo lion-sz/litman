@@ -1,9 +1,7 @@
-from typing import Optional
 import itertools
 import uuid
 
 from litman.db_connector import DB
-from litman.entries.entry import Entry
 from litman.keywords import Keyword
 
 
@@ -12,14 +10,10 @@ class Search:
     query: str
     result: list
 
-    _key_exact = (
-        "SELECT id, type, key, doi, title, author, year FROM entry WHERE key = ?"
-    )
-    _key_like = (
-        "SELECT id, type, key, doi, title, author, year FROM entry WHERE key LIKE ?"
-    )
-    _title = """SELECT id, type, key, doi, title, author, year FROM entry WHERE id IN (
-            SELECT rowid FROM entries_fts WHERE title MATCH ? ORDER BY rank
+    _key_exact = "SELECT id FROM entry WHERE key = ?"
+    _key_like = "SELECT id FROM entry WHERE key LIKE ?"
+    _title = """SELECT id FROM entry WHERE id IN (
+            SELECT rowid FROM entry_fts WHERE title MATCH ? ORDER BY rank
         )"""
 
     def __init__(self, db: DB, query: str):
@@ -27,11 +21,12 @@ class Search:
         self.query = query
         self.result = self.search()
 
-    def search(self):
+    def search(self) -> list[uuid.UUID]:
+        """Serach for entries and return the ids of matches."""
         # Key based searches
         key_exact = self._search_key_exact()
-        if key_exact is not None:
-            return [key_exact]
+        if key_exact:
+            return key_exact
         key_like = self._search_key_like()
         if len(key_like) > 0:
             return key_like
@@ -40,22 +35,19 @@ class Search:
             return title
         return []
 
-    def _search_key_exact(self) -> Optional[Entry]:
+    def _search_key_exact(self) -> list[uuid.UUID]:
         results = self.db.cursor.execute(self._key_exact, (self.query,)).fetchall()
-        if len(results) == 1:
-            return Entry.from_db(results[0])
-        else:
-            return None
+        return [r[0] for r in results]
 
-    def _search_key_like(self) -> list[Entry]:
+    def _search_key_like(self) -> list[uuid.UUID]:
         results = self.db.cursor.execute(
             self._key_like, (f"%{self.query}%",)
         ).fetchall()
-        return [Entry.from_db(result) for result in results]
+        return [result[0] for result in results]
 
-    def _search_title(self):
+    def _search_title(self) -> list[uuid.UUID]:
         results = self.db.cursor.execute(self._title, (self.query,)).fetchall()
-        return [Entry.from_db(result) for result in results]
+        return [result[0] for result in results]
 
 
 class AdvancedSearch:

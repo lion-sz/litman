@@ -8,9 +8,20 @@ from flask import (
 )
 
 from litman.keywords import Keyword
-from litman.search import AdvancedSearch
+from litman.search import AdvancedSearch, Search
 from litman_cli.globals import get_globals
 from litman_web.app import app
+from litman_web.template_renderers import entry_renderers
+
+
+@app.route("/entry/search", methods=["POST"])
+def search():
+    query = request.form.get("search", "")
+    if len(query) == 0:
+        return "No Query provided"
+    config, db = get_globals()
+    search = Search(db, query)
+    return entry_renderers.title_list(db, search.result)
 
 
 @app.route("/search/advanced", methods=["GET"])

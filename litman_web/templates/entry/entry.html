@@ -28,7 +28,7 @@
         {% if files_loaded %}
             {% include 'entry/files.html' %}
         {% else %}
-            <div class="mb-3 card-text" hx-get="/entry/files/{{ entry.id }}" hx-swap="outerHTML">Load Files</div>
+            <div class="mb-3 card-text" hx-get="/entry/{{ entry.id }}/file" hx-swap="outerHTML">Load Files</div>
         {% endif %}
 
         <!-- Keywords -->

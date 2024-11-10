@@ -4,18 +4,25 @@
         <div class="col-2 card-text">Files:</div>
         <div class="col-10 list-group-flush">
             {% for file in files %}
-                <div class="list-group-item"><a href="/entry/file/{{ file.id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a></div>
+                <div class="list-group-item" style="margin-top: 1em">
+                    <a href="/entry/{{ entry.id }}/file/{{ file.id }}" target="_blank" style="text-decoration: none; color: {{ 'black' if file.default_open else 'grey' }}">{{ file.name }}</a>
+                    <a style="float: right" class="btn btn-secondary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Modify</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" hx-delete="/entry/{{ entry.id }}/file/{{ file.id }}" hx-target="#files_{{entry.entry_id}}">Delete</a></li>
+                        <li><a class="dropdown-item" hx-get="/entry/{{ entry.id }}/file/{{ file.id }}/make_default" hx-target="#files_{{entry.entry_id}}">Make Default</a></li>
+                    </ul>
+                </div>
             {% endfor %}
         </div>
     </div>
 
     <!-- Button trigger modal -->
     <div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.key }}">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal{{ entry.id }}">
             Attach File
         </button>
     </div>
-    <div class="modal fade" id="uploadModal{{ entry.key }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="uploadModal{{ entry.id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -23,8 +30,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="uploadMsg{{ entry.key }}"></div>
-                    <form hx-post="/entry/files/{{ entry.id }}" hx-target="#files_{{ entry.entry_id }}" enctype="multipart/form-data">
+                    <div id="uploadMsg{{ entry.id }}"></div>
+                    <form hx-post="/entry/{{ entry.id }}/file" hx-target="#files_{{ entry.entry_id }}" enctype="multipart/form-data">
 
                         <div class="mb-3">Type
                             {% for (file_type, file_type_val) in file_types %}

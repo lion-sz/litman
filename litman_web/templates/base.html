@@ -161,6 +161,10 @@
         toastBootstrap.show()
     })
 
+    htmx.on("closeModal", (event) => {
+        $(event.detail.id).modal("hide")
+        // document.getElementById(id).modal('hide')
+    })
 </script>
 
 </body>
